@@ -16,9 +16,9 @@ from typing import Optional
 import uuid
 import os
 
-from .database import get_db, init_db
-from .models import User, Profile
-from .lobby_manager import lobby_manager, Player
+from database import get_db, init_db
+from models import User, Profile
+from lobby_manager import lobby_manager, Player
 
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
