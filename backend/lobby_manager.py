@@ -176,7 +176,7 @@ class LobbyManager:
             return self.get_lobby(lobby_id)
         return None
     
-    def list_lobbies(self) -> List[dict]:
+    def list_lobbies(self) -> list[dict]:
         """List all active lobbies."""
         return [lobby.get_lobby_info() for lobby in self.lobbies.values()]
     
