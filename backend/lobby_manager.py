@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any
 from dataclasses import dataclass, field
 from fastapi import WebSocket
-from typing import Optional
+from fastapi import WebSocket
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Lobby:
     def __init__(self, lobby_id: str, host_id: str):
         self.id = lobby_id
         self.host_id = host_id
-        self.players: Dict[str, Player] = {}
+        self.players: dict[str, Player] = {}
         self.created_at = datetime.utcnow()
         self.status = "waiting"  # waiting, in_progress, finished
         
@@ -68,11 +68,11 @@ class Lobby:
         player.lobby_id = self.id
         return True
     
-    def remove_player(self, player_id: str) -> Optional[Player]:
+    def remove_player(self, player_id: str) -> Player | None:
         """Remove and return a player from the lobby."""
         return self.players.pop(player_id, None)
     
-    def get_player(self, player_id: str) -> Optional[Player]:
+    def get_player(self, player_id: str) -> Player | None:
         """Get a player by ID."""
         return self.players.get(player_id)
     
@@ -84,7 +84,7 @@ class Lobby:
         """Check if lobby has no players."""
         return len(self.players) == 0
     
-    async def broadcast_async(self, message: dict, exclude_player_id: Optional[str] = None):
+    async def broadcast_async(self, message: dict, exclude_player_id: str | None = None):
         """
         Broadcast a message to all players in the lobby asynchronously.
         Optionally exclude a specific player (useful for echoing back sender's data).
@@ -126,8 +126,8 @@ class LobbyManager:
     """Global manager for all lobbies."""
     
     def __init__(self):
-        self.lobbies: Dict[str, Lobby] = {}
-        self.player_to_lobby: Dict[str, str] = {}  # player_id -> lobby_id mapping
+        self.lobbies: dict[str, Lobby] = {}
+        self.player_to_lobby: dict[str, str] = {}  # player_id -> lobby_id mapping
     
     def create_lobby(self, host_id: str) -> Lobby:
         """Create a new lobby and return it."""
@@ -136,7 +136,7 @@ class LobbyManager:
         self.lobbies[lobby_id] = lobby
         return lobby
     
-    def get_lobby(self, lobby_id: str) -> Optional[Lobby]:
+    def get_lobby(self, lobby_id: str) -> Lobby | None:
         """Get a lobby by ID."""
         return self.lobbies.get(lobby_id)
     
@@ -151,7 +151,7 @@ class LobbyManager:
             return True
         return False
     
-    def leave_lobby(self, player_id: str) -> Optional[Lobby]:
+    def leave_lobby(self, player_id: str) -> Lobby | None:
         """Remove player from their current lobby. Returns the lobby (or None)."""
         lobby_id = self.player_to_lobby.pop(player_id, None)
         if not lobby_id:
@@ -169,7 +169,7 @@ class LobbyManager:
             return lobby
         return None
     
-    def get_player_lobby(self, player_id: str) -> Optional[Lobby]:
+    def get_player_lobby(self, player_id: str) -> Lobby | None:
         """Get the lobby a player is currently in."""
         lobby_id = self.player_to_lobby.get(player_id)
         if lobby_id:
@@ -180,7 +180,7 @@ class LobbyManager:
         """List all active lobbies."""
         return [lobby.get_lobby_info() for lobby in self.lobbies.values()]
     
-    async def broadcast_to_lobby(self, lobby_id: str, message: dict, exclude_player_id: Optional[str] = None):
+    async def broadcast_to_lobby(self, lobby_id: str, message: dict, exclude_player_id: str | None = None):
         """Broadcast a message to all players in a specific lobby."""
         lobby = self.get_lobby(lobby_id)
         if lobby:
