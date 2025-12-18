@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: edu-party-game
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: edu-party-db
+          property: connectionString
+    
+databases:
+  - name: edu-party-db
+    databaseName: eduparty
+    plan: free

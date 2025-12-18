@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EDU Party - Fall Guys Style Game</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Logo/Title -->
+        <div class="game-logo">
+            <h1 class="logo-text">EDU PARTY</h1>
+            <p class="subtitle">FALL GUYS MAYHEM!</p>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="screen active">
+            <div class="card">
+                <h2 class="card-title">LOGIN</h2>
+                <form id="loginForm">
+                    <input type="text" id="loginUsername" placeholder="Username" class="input-field" required>
+                    <input type="password" id="loginPassword" placeholder="Password" class="input-field" required>
+                    <button type="submit" class="btn btn-primary">LOGIN</button>
+                </form>
+                <p class="switch-text">Don't have an account? <span id="showRegister" class="link">Register</span></p>
+            </div>
+        </div>
+
+        <!-- Register Screen -->
+        <div id="registerScreen" class="screen">
+            <div class="card">
+                <h2 class="card-title">REGISTER</h2>
+                <form id="registerForm">
+                    <input type="text" id="registerUsername" placeholder="Username" class="input-field" required>
+                    <input type="password" id="registerPassword" placeholder="Password" class="input-field" required>
+                    <button type="submit" class="btn btn-primary">REGISTER</button>
+                </form>
+                <p class="switch-text">Already have an account? <span id="showLogin" class="link">Login</span></p>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobbyScreen" class="screen">
+            <div class="card">
+                <div class="profile-header">
+                    <h2 class="card-title" id="welcomeText">WELCOME!</h2>
+                    <button id="logoutBtn" class="btn btn-small">Logout</button>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">WINS</span>
+                        <span class="stat-value" id="winsValue">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">LOSSES</span>
+                        <span class="stat-value" id="lossesValue">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">ELO</span>
+                        <span class="stat-value" id="eloValue">1000</span>
+                    </div>
+                </div>
+
+                <div class="lobby-actions">
+                    <button id="createLobbyBtn" class="btn btn-primary">CREATE LOBBY</button>
+                    <button id="refreshLobbiesBtn" class="btn btn-secondary">REFRESH LOBBIES</button>
+                </div>
+
+                <div class="lobbies-list" id="lobbiesList">
+                    <h3 class="section-title">ACTIVE LOBBIES</h3>
+                    <div id="lobbiesContainer">
+                        <p class="empty-message">No active lobbies. Create one!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Launch Screen (when lobby created) -->
+        <div id="gameLaunchScreen" class="screen">
+            <div class="card centered-card">
+                <h2 class="card-title">LOBBY CREATED!</h2>
+                <p class="lobby-code-text">Lobby ID: <span id="lobbyIdDisplay" class="highlight">XXXX</span></p>
+                <p class="info-text">Share this code with your friends!</p>
+                <button id="playGameBtn" class="btn btn-huge btn-primary">🎮 PLAY NOW!</button>
+                <button id="backToLobbyBtn" class="btn btn-secondary">BACK</button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <p class="loading-text">LOADING...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

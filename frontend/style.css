@@ -1,0 +1,470 @@
+/* ============================================================================
+   EDU PARTY - Brawl Stars Inspired Mobile-First Styles
+   ============================================================================ */
+
+/* Global Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    /* Brawl Stars Color Palette */
+    --primary-bg: #2D1B69;
+    --secondary-bg: #4A2C8D;
+    --accent-yellow: #FFD93D;
+    --accent-orange: #FF6B35;
+    --dark-purple: #1A0F3E;
+    --text-white: #FFFFFF;
+    --text-shadow: #000000;
+    --border-black: #000000;
+    --success-green: #4ECDC4;
+    --error-red: #FF4757;
+    
+    /* Spacing */
+    --spacing-xs: 8px;
+    --spacing-sm: 12px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* Border */
+    --border-thick: 5px;
+    --border-radius: 15px;
+    
+    /* Shadows */
+    --shadow-strong: 0 8px 0 rgba(0, 0, 0, 0.4);
+    --shadow-text: 4px 4px 0 var(--text-shadow);
+}
+
+body {
+    font-family: 'Luckiest Guy', 'Impact', cursive;
+    background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+    color: var(--text-white);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px; /* Prevent zoom on iOS */
+    overflow-x: hidden;
+    padding: var(--spacing-md);
+}
+
+/* Container */
+.container {
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+}
+
+/* Logo */
+.game-logo {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    animation: bounceIn 0.8s ease-out;
+}
+
+.logo-text {
+    font-size: clamp(48px, 12vw, 72px);
+    color: var(--accent-yellow);
+    text-shadow: var(--shadow-text);
+    letter-spacing: 2px;
+    transform: skew(-3deg);
+    margin-bottom: var(--spacing-xs);
+}
+
+.subtitle {
+    font-size: clamp(16px, 4vw, 20px);
+    color: var(--accent-orange);
+    text-shadow: 2px 2px 0 var(--text-shadow);
+    letter-spacing: 1px;
+}
+
+/* Screens */
+.screen {
+    display: none;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* Cards */
+.card {
+    background: linear-gradient(180deg, #6B46C1 0%, #553C9A 100%);
+    border: var(--border-thick) solid var(--border-black);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-strong);
+    margin-bottom: var(--spacing-md);
+}
+
+.centered-card {
+    text-align: center;
+}
+
+.card-title {
+    font-size: clamp(28px, 7vw, 36px);
+    color: var(--accent-yellow);
+    text-shadow: 3px 3px 0 var(--text-shadow);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+    transform: skew(-2deg);
+}
+
+/* Input Fields */
+.input-field {
+    width: 100%;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    font-size: 18px;
+    font-family: 'Arial', sans-serif;
+    border: var(--border-thick) solid var(--border-black);
+    border-radius: var(--border-radius);
+    background: var(--text-white);
+    color: var(--dark-purple);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+    min-height: 44px; /* Touch-friendly */
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--accent-yellow);
+    box-shadow: 0 4px 0 rgba(255, 217, 61, 0.5);
+}
+
+/* Buttons */
+.btn {
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    font-family: 'Luckiest Guy', 'Impact', cursive;
+    font-size: clamp(20px, 5vw, 24px);
+    border: var(--border-thick) solid var(--border-black);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow-strong);
+    transition: transform 0.1s, box-shadow 0.1s;
+    min-height: 54px; /* Touch-friendly */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: linear-gradient(180deg, var(--accent-yellow) 0%, var(--accent-orange) 100%);
+    color: var(--dark-purple);
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.btn-secondary {
+    background: linear-gradient(180deg, #9B59B6 0%, #8E44AD 100%);
+    color: var(--text-white);
+    text-shadow: 2px 2px 0 var(--text-shadow);
+}
+
+.btn-huge {
+    font-size: clamp(28px, 7vw, 36px);
+    padding: var(--spacing-lg);
+    min-height: 64px;
+}
+
+.btn-small {
+    width: auto;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 14px;
+    min-height: 44px;
+}
+
+.btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Remove hover on touch devices */
+@media (hover: hover) and (pointer: fine) {
+    .btn:hover {
+        filter: brightness(1.1);
+    }
+}
+
+/* Profile Header */
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+/* Stats Container */
+.stats-container {
+    display: flex;
+    justify-content: space-around;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    background: var(--dark-purple);
+    border: 3px solid var(--border-black);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    text-align: center;
+    flex: 1;
+    min-width: 80px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.stat-label {
+    display: block;
+    font-size: 14px;
+    color: var(--accent-yellow);
+    margin-bottom: var(--spacing-xs);
+}
+
+.stat-value {
+    display: block;
+    font-size: 24px;
+    color: var(--text-white);
+    text-shadow: 2px 2px 0 var(--text-shadow);
+}
+
+/* Lobby Actions */
+.lobby-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Lobbies List */
+.lobbies-list {
+    background: var(--dark-purple);
+    border: 3px solid var(--border-black);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.section-title {
+    font-size: 18px;
+    color: var(--accent-yellow);
+    text-shadow: 2px 2px 0 var(--text-shadow);
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+}
+
+#lobbiesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.lobby-item {
+    background: var(--secondary-bg);
+    border: 3px solid var(--border-black);
+    border-radius: 10px;
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.1s;
+    min-height: 60px;
+}
+
+.lobby-item:active {
+    transform: scale(0.98);
+}
+
+.lobby-info {
+    flex: 1;
+}
+
+.lobby-id {
+    font-size: 16px;
+    color: var(--accent-yellow);
+    margin-bottom: 4px;
+}
+
+.lobby-players {
+    font-size: 14px;
+    color: var(--text-white);
+}
+
+.lobby-join-btn {
+    background: var(--success-green);
+    border: 3px solid var(--border-black);
+    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 14px;
+    color: var(--dark-purple);
+    cursor: pointer;
+    min-width: 70px;
+    min-height: 44px;
+}
+
+/* Game Launch Screen */
+.lobby-code-text {
+    font-size: clamp(20px, 5vw, 24px);
+    margin-bottom: var(--spacing-md);
+}
+
+.highlight {
+    color: var(--accent-yellow);
+    font-size: clamp(28px, 7vw, 36px);
+    text-shadow: 3px 3px 0 var(--text-shadow);
+}
+
+.info-text {
+    font-size: 16px;
+    margin-bottom: var(--spacing-lg);
+    font-family: Arial, sans-serif;
+}
+
+/* Misc Text */
+.switch-text {
+    text-align: center;
+    font-size: 14px;
+    margin-top: var(--spacing-md);
+    font-family: Arial, sans-serif;
+}
+
+.link {
+    color: var(--accent-yellow);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.empty-message {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-white);
+    opacity: 0.7;
+    font-family: Arial, sans-serif;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid var(--accent-yellow);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-md);
+}
+
+.loading-text {
+    font-size: 24px;
+    color: var(--accent-yellow);
+    text-shadow: 2px 2px 0 var(--text-shadow);
+}
+
+/* Error Message */
+.error-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--error-red);
+    border: 4px solid var(--border-black);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 16px;
+    text-shadow: 2px 2px 0 var(--text-shadow);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    display: none;
+    max-width: 90%;
+}
+
+.error-message.active {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translate(-50%, -100%); }
+    to { transform: translate(-50%, 0); }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Tablet and Desktop Optimizations */
+@media (min-width: 768px) {
+    body {
+        font-size: 18px;
+    }
+    
+    .container {
+        max-width: 600px;
+    }
+    
+    .lobby-actions {
+        flex-direction: row;
+    }
+    
+    .stats-container {
+        flex-wrap: nowrap;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        max-width: 700px;
+    }
+    
+    .logo-text {
+        font-size: 84px;
+    }
+}
+
+/* Accessibility */
+button:focus,
+input:focus {
+    outline: 3px solid var(--accent-yellow);
+    outline-offset: 2px;
+}
