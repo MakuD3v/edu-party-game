@@ -18,7 +18,12 @@ class Player:
     websocket: WebSocket
     lobby_id: Optional[str] = None
     
-    # Fall Guys-style game state
+    # EDU-PARTY: Character customization
+    color: str = "red"  # red, blue, green
+    gear: List[str] = field(default_factory=list)  # glasses, cap, backpack
+    ready_status: bool = False
+    
+    # Game state
     position: Dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0, "z": 0})
     velocity: Dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0, "z": 0})
     rotation: float = 0.0
@@ -29,6 +34,9 @@ class Player:
         return {
             "id": self.id,
             "username": self.username,
+            "color": self.color,
+            "gear": self.gear,
+            "ready_status": self.ready_status,
             "position": self.position,
             "velocity": self.velocity,
             "rotation": self.rotation,

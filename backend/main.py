@@ -69,6 +69,12 @@ class ProfileResponse(BaseModel):
     elo_rating: float
 
 
+class ProfileUpdate(BaseModel):
+    username: Optional[str] = None
+    color: Optional[str] = None
+    gear: Optional[List[str]] = None
+
+
 class LobbyCreate(BaseModel):
     pass  # No fields needed, will use token to identify host
 
@@ -208,6 +214,39 @@ async def get_profile(token: str, db: AsyncSession = Depends(get_db)):
     }
 
 
+@app.post("/api/profile/update")
+async def update_profile(profile_data: ProfileUpdate, token: str, db: AsyncSession = Depends(get_db)):
+    """Update user profile (username and character customization)."""
+    username = decode_token(token)
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    # Get user
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Update username if provided
+    if profile_data.username and profile_data.username != username:
+        # Check if new username already exists
+        check_result = await db.execute(select(User).where(User.username == profile_data.username))
+        existing = check_result.scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
+        user.username = profile_data.username
+        await db.commit()
+    
+    return {
+        "message": "Profile updated successfully",
+        "username": user.username
+    }
+
+
 @app.post("/api/lobby/create")
 async def create_lobby(token: str):
     """Create a new lobby."""
@@ -293,6 +332,50 @@ async def websocket_endpoint(websocket: WebSocket, lobby_id: str, token: str):
         # Main message loop
         while True:
             data = await websocket.receive_json()
+            message_type = data.get("type", "")
+            
+            # Handle profile updates (color, gear, username)
+            if message_type == "profile_update":
+                if "color" in data:
+                    player.color = data["color"]
+                if "gear" in data:
+                    player.gear = data["gear"]
+                if "username" in data:
+                    player.username = data["username"]
+                
+                # Broadcast to all players
+                await lobby.broadcast_async({
+                    "type": "profile_update",
+                    "player": player.to_dict()
+                })
+            
+            # Handle ready toggle
+            elif message_type == "ready_toggle":
+                player.ready_status = data.get("ready", False)
+                await lobby.broadcast_async({
+                    "type": "ready_update",
+                    "player_id": player_id,
+                    "ready": player.ready_status
+                })
+            
+            # Handle game start (host only)
+            elif message_type == "start_game":
+                if player_id == lobby.host_id or player.username == lobby.host_id:
+                    lobby.status = "in_progress"
+                    await lobby.broadcast_async({
+                        "type": "game_start",
+                        "game_type": "math_dash"
+                    })
+            
+            # Handle game actions (movement, answers, etc.)
+            elif message_type == "game_action":
+                action_data = data.get("action", {})
+                # Broadcast game action to all players
+                await lobby.broadcast_async({
+                    "type": "game_action",
+                    "player_id": player_id,
+                    "action": action_data
+                })
             
             # Update player state from received data
             if "position" in data:
@@ -304,11 +387,12 @@ async def websocket_endpoint(websocket: WebSocket, lobby_id: str, token: str):
             if "state" in data:
                 player.state = data["state"]
             
-            # Broadcast updated state to all other players
-            await lobby.broadcast_async({
-                "type": "player_update",
-                "player": player.to_dict()
-            }, exclude_player_id=player_id)
+            # Broadcast updated state to all other players (legacy support)
+            if message_type == "player_update" or not message_type:
+                await lobby.broadcast_async({
+                    "type": "player_update",
+                    "player": player.to_dict()
+                }, exclude_player_id=player_id)
     
     except WebSocketDisconnect:
         # Player disconnected

@@ -1,135 +1,100 @@
-# 🚀 QUICK START: Deploy to Render in 5 Minutes
+# EDU-PARTY Quick Start Guide
 
-## What You Have Now
+## Running the Complete System
 
-✅ **Complete multiplayer game system** with:
-- Backend API (FastAPI + PostgreSQL + WebSockets)
-- Mobile-responsive Brawl Stars-themed launcher
-- Godot 4 network integration script
-- Fall Guys-style multiplayer sync
-- Git repository ready to push
+### 1. Start the Backend Server
 
-## Deploy to Public Cloud (Render.com)
-
-### Step 1: Create GitHub Repository
-
-1. Go to **https://github.com/new**
-2. Create a new repository (name it "edu-party-game")
-3. **Don't** initialize with README (we already have code)
-4. Copy the repository URL
-
-### Step 2: Push Your Code
-
-```powershell
-# In PowerShell (already in EDU_PARTY_FINAL directory):
-git remote add origin https://github.com/YOUR_USERNAME/edu-party-game.git
-git branch -M main
-git push -u origin main
+```bash
+# From EDU_PARTY_FINAL directory
+start_server.bat
 ```
 
-### Step 3: Deploy to Render
+The backend will start on `http://localhost:8000`
 
-1. Go to **https://render.com** (sign up if needed)
-2. Click **"New +"** → **"Blueprint"**
-3. **Connect your GitHub repo**: edu-party-game
-4. Click **"Apply"**
+### 2. Launch the Pygame Client
 
-Render will automatically:
-- Create a web service
-- Create a PostgreSQL database
-- Set up environment variables
-- Deploy your app!
-
-### Step 4: Initialize Database
-
-After deployment completes (~3-5 minutes):
-
-1. Go to your service dashboard on Render
-2. Click **"Shell"** tab
-3. Run this command:
-   ```bash
-   python init_render_db.py
-   ```
-
-This creates the database tables.
-
-### Step 5: Access Your Live App! 🎉
-
-Your app will be at: `https://edu-party-game-XXXX.onrender.com`
-
-Open it in:
-- Your desktop browser
-- Your mobile phone browser
-- Share with friends!
-
----
-
-## What to Test
-
-1. **Register** a new user on your live app
-2. **Create a lobby**
-3. **Open the same URL on your phone** and join the lobby
-4. Ready to integrate with your Godot game!
-
----
-
-## Update Godot for Production
-
-In your Godot project's `network_gateway.gd`, change line 20:
-
-```gdscript
-# OLD (local):
-var server_url: String = "ws://localhost:8000/ws"
-
-# NEW (production - use YOUR actual Render URL):
-var server_url: String = "wss://edu-party-game-XXXX.onrender.com/ws"
+**Terminal 1 (Player 1):**
+```bash
+start_client.bat
 ```
 
-Note: Use `wss://` (secure WebSocket) for production!
+**Terminal 2 (Player 2 - Optional):**
+```bash
+start_client.bat
+```
 
----
+### 3. Play the Game
+
+1. **Login Screen:**
+   - Enter username and password
+   - Click "Login" or "Register"
+   - Server auto-creates a lobby
+
+2. **The Homeroom (Lobby):**
+   - Click your username to edit it
+   - Choose character color (Red/Blue/Green)
+   - Toggle school gear (Glasses, Grad Cap, Backpack)
+   - Click "Raise Hand" when ready
+   - Host clicks "Start Class!" to begin
+
+3. **Math Dash Game:**
+   - Read the math problem at the top
+   - Use **A/D** or **Arrow Keys** or **1/2/3** to move between platforms
+   - Stand on the correct answer platform before time runs out!
+   - Get +10 points for correct answers
+   - Multiple rounds automatically cycle
+
+## Controls
+
+### Lobby:
+- **Click** on username to edit
+- **Click** color/gear buttons to customize
+- **Click** "Raise Hand" to toggle ready
+
+### Math Dash:
+- **A** or **Left Arrow** or **1**: Move to left platform
+- **D** or **Right Arrow** or **3**: Move to right platform
+- **2**: Move to middle platform
+
+## Features Implemented
+
+✅ **Profile Customization:**
+- Editable username (syncs to all players)
+- 3 color choices (Red, Blue, Green)
+- 3 gear items (Glasses, Cap, Backpack)
+- Real-time updates across all clients
+
+✅ **Homeroom Lobby:**
+- Student desk display for all players
+- Class size counter (up to 15 students)
+- Ready status with "Raise Hand" button
+- Host can start the game
+
+✅ **Math Dash Minigame:**
+- Auto-generated math problems (+, -, ×)
+- 3 platform jumping system
+- 15-second countdown timer
+- Score tracking
+- Multiple rounds
+- Full multiplayer synchronization
+
+## Technical Details
+
+- **Backend:** FastAPI + WebSockets (Python)
+- **Client:** Pygame with asyncio integration
+- **Architecture:** Non-blocking 60 FPS render loop
+- **Theme:** School Supplies aesthetic (notebook paper, chalkboard, crayon fonts)
 
 ## Troubleshooting
 
-**"Service failed to start"?**
-- Check the Render logs for errors
-- Verify DATABASE_URL is set in environment variables
+**Connection Error:**
+- Ensure backend server is running first
+- Check that port 8000 is not in use
 
-**"Can't connect from mobile"?**
-- Make sure you're using the HTTPS URL (not localhost)
-- Check that CORS_ORIGINS is set to `*` in Render
+**Import Errors:**
+- Run `pip install -r requirements.txt` in pygame_client directory
 
-**Need to update code?**
-```powershell
-git add .
-git commit -m "Your update message"
-git push
-```
-Render auto-deploys on push!
+**WebSocket Disconnect:**
+- Backend may have restarted - restart client
 
----
-
-## 💰 Cost
-
-**Render Free Tier:**
-- Web Service: FREE (spins down after 15 min inactivity)
-- PostgreSQL: FREE (90 days, then $7/month or use Neon.tech)
-- Perfect for demos and testing!
-
----
-
-## Alternative: Quick Local Test
-
-If you want to test locally on Windows first:
-
-```powershell
-venv\Scripts\python.exe -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Open: `http://localhost:8000`
-
-But remember: **mobile devices can't access localhost!**
-
----
-
-**You're ready to deploy! 🚀**
+Enjoy the Classroom Mayhem! 🎓✏️📚
