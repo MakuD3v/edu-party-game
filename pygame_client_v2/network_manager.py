@@ -136,15 +136,44 @@ class NetworkManager:
                 break
     
     # Convenience methods for common actions
+
+    async def get_lobbies(self) -> list[dict[str, Any]]:
+        """Fetch active lobbies from the server."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{API_URL}/api/lobby/list") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data.get("lobbies", [])
+        except Exception as e:
+            print(f"Error fetching lobbies: {e}")
+        return []
+
+    async def create_lobby(self, token: str, capacity: int, game_mode: str) -> dict[str, Any] | None:
+        """Create a new lobby."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{API_URL}/api/lobby/create",
+                    params={"token": token},
+                    json={"capacity": capacity, "game_mode": game_mode}  # Note: Backend might need update to accept these
+                ) as response:
+                    if response.status == 200:
+                        return await response.json()
+        except Exception as e:
+            print(f"Error creating lobby: {e}")
+        return None
+
     async def update_profile(self, **kwargs: Any) -> None:
         """Send profile update message.
         
         Args:
             **kwargs: Profile fields to update (color, gear, username, etc.)
         """
-        message = {"type": "profile_update"}
-        message.update(kwargs)
-        await self.send(message)
+        if self.connected:
+            message = {"type": "profile_update"}
+            message.update(kwargs)
+            await self.send(message)
     
     async def toggle_ready(self, ready: bool) -> None:
         """Send ready status toggle.

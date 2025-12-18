@@ -1,12 +1,13 @@
 """
 GameController Class - Master orchestrator for the game.
-Manages main loop, event handling, and state transitions.
+Manages main loop, event handling, and state transitions using the View System.
 """
 import pygame
 import asyncio
 import aiohttp
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Optional
+
 from constants import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, API_URL,
     CHALKBOARD_DARK, CHALK_WHITE, SCHOOL_BUS_YELLOW, MAYHEM_PURPLE, GEAR_DATABASE
@@ -15,15 +16,23 @@ from student import Student
 from network_manager import NetworkManager
 from math_dash import MathDash
 from profile_badge import ProfileBadge
-from profile_view import ProfileView
+
+# Views
+from views.base_view import BaseView
+from views.lobby_list_view import LobbyListView
+from views.lobby_settings_view import LobbySettingsView
+from views.in_lobby_view import InLobbyView
+from profile_view import ProfileView  # Renamed/Refactored existing
 
 
 class GameState(Enum):
     """Game state enumeration for Educational Mayhem."""
-    MENU = auto()
-    LOBBY = auto()
-    PROFILE_VIEW = auto()  # Educational Mayhem: Character customizer
-    MATH_MINIGAME = auto()
+    MENU = auto()           # Login screen (keep legacy for now or refactor later)
+    LOBBY_LIST = auto()     # New: List of lobbies
+    LOBBY_SETTINGS = auto() # New: Create lobby modal
+    IN_LOBBY = auto()       # New: Waiting room
+    PROFILE_VIEW = auto()   # Character customizer
+    MATH_MINIGAME = auto()  # Gameplay
 
 
 class GameController:
@@ -34,258 +43,223 @@ class GameController:
         # Pygame setup
         pygame.init()
         self._screen: pygame.Surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("EDU-PARTY - OOP Edition")
+        pygame.display.set_caption("EDU-PARTY: Educational Mayhem")
         self._clock: pygame.time.Clock = pygame.time.Clock()
         self._running: bool = True
         
-        # Game state
-        self._state: GameState = GameState.MENU
+        # Audio/Assets (Placeholder)
+        self.assets = {}
         
         # Network
-        self._network: NetworkManager = NetworkManager("ws://localhost:8000")
+        self._network: NetworkManager = NetworkManager(API_URL.replace("http", "ws"))
+        self._token: str = ""
         
-        # Students
+        # Game Data
         self._students: dict[str, Student] = {}
         self._local_student: Student | None = None
+        self._lobby_id: str = ""
         self._is_host: bool = False
         
-        # Auth data
-        self._token: str = ""
-        self._lobby_id: str = ""
+        # Legacy UI State (Menu)
+        self._username_input: str = "Student1"
+        self._password_input: str = "password123"
+        self._status_message: str = ""
         
         # Minigame
         self._math_dash: MathDash = MathDash(SCREEN_WIDTH, SCREEN_HEIGHT)
         
-        # Educational Mayhem: Profile system
-        self._profile_badge: ProfileBadge = ProfileBadge()
-        self._profile_view: ProfileView | None = None
-        self._previous_state: GameState = GameState.LOBBY  # For returning from profile
+        # View Management
+        self.views: dict[str, BaseView] = {}
+        self._active_view: BaseView | None = None
+        self._state: GameState = GameState.MENU
         
-        # UI state
-        self._username_input: str = "Student1"
-        self._password_input: str = "password123"
-        self._status_message: str = ""
-        self._gear_index: int = 0  # For cycling through GEAR_DATABASE
+        # Profile Badge (Overlay)
+        self._profile_badge: ProfileBadge = ProfileBadge()
+
+        # Initialize Views
+        self._init_views()
     
+    def _init_views(self):
+        """Initialize all view instances."""
+        self.views["LOBBY_LIST"] = LobbyListView(self._screen, self)
+        self.views["LOBBY_SETTINGS"] = LobbySettingsView(self._screen, self)
+        self.views["IN_LOBBY"] = InLobbyView(self._screen, self)
+        self.views["PROFILE"] = ProfileView(self._screen, self)
+        
+        # Note: MENU and GAME are currently handled inline or legacy, 
+        # but could be moved to views later.
+    
+    # Properties for Views to access
     @property
-    def state(self) -> GameState:
-        """Get current game state."""
-        return self._state
-    
+    def screen(self) -> pygame.Surface:
+        return self._screen
+        
+    @property
+    def network_manager(self) -> NetworkManager:
+        return self._network
+
+    @property
+    def network(self) -> NetworkManager: # Alias
+        return self._network
+        
     @property
     def local_student(self) -> Student | None:
-        """Get local student."""
         return self._local_student
-    
-    def switch_state(self, new_state: GameState) -> None:
-        """Transition to a new game state.
         
-        Args:
-            new_state: The state to transition to
-        """
-        print(f"[GameController] State transition: {self._state} -> {new_state}")
+    @property
+    def students(self) -> dict[str, Student]:
+        return self._students
+        
+    @property
+    def is_host(self) -> bool:
+        return self._is_host
+        
+    @property
+    def token(self) -> str:
+        return self._token
+        
+    @property
+    def lobby_id(self) -> str:
+        return self._lobby_id
+
+    # State Management
+    def switch_state(self, new_state_name: str | GameState) -> None:
+        """Transition to a new game state."""
+        # Convert string to enum if needed
+        if isinstance(new_state_name, str):
+            try:
+                # Map string names to Enum
+                mapping = {
+                    "LOBBY": GameState.LOBBY_LIST, # Default 'LOBBY' goes to list now
+                    "LOBBY_LIST": GameState.LOBBY_LIST,
+                    "LOBBY_SETTINGS": GameState.LOBBY_SETTINGS,
+                    "IN_LOBBY": GameState.IN_LOBBY,
+                    "PROFILE": GameState.PROFILE_VIEW,
+                    "GAME": GameState.MATH_MINIGAME,
+                    "MENU": GameState.MENU
+                }
+                new_state = mapping.get(new_state_name.upper(), GameState.MENU)
+            except:
+                print(f"Invalid state name: {new_state_name}")
+                return
+        else:
+            new_state = new_state_name
+            
+        print(f"[GameController] Switch State: {self._state} -> {new_state}")
+        
+        # Exit current view
+        if self._active_view:
+            self._active_view.on_leave()
+            
         self._state = new_state
-    
-    # Event handling
+        
+        # Set new active view
+        if new_state == GameState.LOBBY_LIST:
+            self._active_view = self.views["LOBBY_LIST"]
+        elif new_state == GameState.LOBBY_SETTINGS:
+            self._active_view = self.views["LOBBY_SETTINGS"]
+        elif new_state == GameState.IN_LOBBY:
+            self._active_view = self.views["IN_LOBBY"]
+        elif new_state == GameState.PROFILE_VIEW:
+            self._active_view = self.views["PROFILE"]
+        else:
+            self._active_view = None # Handled by legacy methods (Menu/Game)
+            
+        # Enter new view
+        if self._active_view:
+            self._active_view.on_enter()
+
+    async def create_lobby(self, capacity: int, game_mode: str) -> None:
+        """Create a lobby via NetworkManager."""
+        result = await self._network.create_lobby(self._token, capacity, game_mode)
+        if result:
+            self._lobby_id = result.get("lobby_id", "")
+            # Connect to it
+            connected = await self._network.connect(self._lobby_id, self._token)
+            if connected:
+                self._is_host = True
+                self.switch_state(GameState.IN_LOBBY)
+            else:
+                print("Failed to connect to created lobby")
+        else:
+            print("Failed to create lobby")
+
+    # Main Loop Methods
     def handle_events(self) -> None:
         """Process pygame events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
             
-            elif self._state == GameState.MENU:
-                self._handle_menu_events(event)
+            # Profile Badge Click (Global if logged in)
+            if self._local_student and self._state != GameState.PROFILE_VIEW:
+                if self._profile_badge.handle_event(event):
+                    self.switch_state(GameState.PROFILE_VIEW)
+                    return
+
+            # Delegate to active view
+            if self._active_view:
+                self._active_view.handle_event(event)
+            else:
+                # Fallback to legacy handlers
+                if self._state == GameState.MENU:
+                    self._handle_menu_events(event)
+                elif self._state == GameState.MATH_MINIGAME:
+                    self._handle_game_events(event)
+
+    def update(self, dt: float) -> None:
+        """Update game state."""
+        self._process_network_messages()
+        
+        if self._active_view:
+            self._active_view.update(dt)
+        else:
+            if self._state == GameState.MATH_MINIGAME:
+                round_ended = self._math_dash.update(dt)
+                if round_ended and not self._math_dash.active and self._is_host:
+                    if self._math_dash._show_result == False:
+                        asyncio.create_task(self._start_new_round())
+
+    def render(self) -> None:
+        """Render the current state."""
+        if self._active_view:
+            self._active_view.render()
             
-            elif self._state == GameState.LOBBY:
-                self._handle_lobby_events(event)
-            
-            elif self._state == GameState.PROFILE_VIEW:
-                self._handle_profile_events(event)
-            
+            # Draw Profile Badge on top of most views (except Profile itself)
+            if self._state != GameState.PROFILE_VIEW and self._local_student:
+                self._profile_badge.render(
+                    self._screen,
+                    self._local_student.username,
+                    self._local_student.color,
+                    self._local_student._shape
+                )
+        else:
+            if self._state == GameState.MENU:
+                self._render_menu()
             elif self._state == GameState.MATH_MINIGAME:
-                self._handle_game_events(event)
-    
+                self._render_game()
+        
+        pygame.display.flip()
+
+    # Legacy/Inline Handlers (for Menu and Game)
     def _handle_menu_events(self, event: pygame.event.Event) -> None:
-        """Handle events in MENU state."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
-                # Login
                 asyncio.create_task(self._attempt_login())
             elif event.key == pygame.K_r:
-                # Register
                 asyncio.create_task(self._attempt_register())
-    
-    def _handle_lobby_events(self, event: pygame.event.Event) -> None:
-        """Handle events in LOBBY state."""
-        # Profile badge click (Educational Mayhem)
-        if self._local_student and self._profile_badge.handle_event(event):
-            self._open_profile_view()
-            return
-        
-        if event.type == pygame.KEYDOWN:
-            # Gear cycling
-            if event.key == pygame.K_g and self._local_student:
-                self._cycle_gear()
-            
-            # Color changing
-            elif event.key == pygame.K_1 and self._local_student:
-                self._change_color("red")
-            elif event.key == pygame.K_2 and self._local_student:
-                self._change_color("blue")
-            elif event.key == pygame.K_3 and self._local_student:
-                self._change_color("green")
-            
-            # Ready toggle
-            elif event.key == pygame.K_SPACE and self._local_student:
-                new_ready = not self._local_student.ready
-                self._local_student.ready = new_ready
-                asyncio.create_task(self._network.toggle_ready(new_ready))
-            
-            # Start game (host only)
-            elif event.key == pygame.K_s and self._is_host:
-                asyncio.create_task(self._network.start_game())
-    
-    def _handle_profile_events(self, event: pygame.event.Event) -> None:
-        """Handle events in PROFILE_VIEW state (Educational Mayhem)."""
-        if not self._profile_view:
-            return
-        
-        action = self._profile_view.handle_event(event)
-        
-        if action == "save":
-            asyncio.create_task(self._save_profile_changes())
-        elif action == "cancel":
-            self.switch_state(self._previous_state)
-    
+
     def _handle_game_events(self, event: pygame.event.Event) -> None:
-        """Handle events in MATH_MINIGAME state."""
         if event.type == pygame.KEYDOWN and self._local_student:
-            # Platform movement
             if event.key in (pygame.K_1, pygame.K_a, pygame.K_LEFT):
                 self._move_to_platform(0)
             elif event.key in (pygame.K_2,):
                 self._move_to_platform(1)
             elif event.key in (pygame.K_3, pygame.K_d, pygame.K_RIGHT):
                 self._move_to_platform(2)
-    
-    # Update logic
-    def update(self, dt: float) -> None:
-        """Update game state.
-        
-        Args:
-            dt: Delta time in seconds
-        """
-        # Process network messages
-        self._process_network_messages()
-        
-        if self._state == GameState.MATH_MINIGAME:
-            # Update minigame
-            round_ended = self._math_dash.update(dt)
-            
-            # Generate new round if needed
-            if round_ended and not self._math_dash.active and self._is_host:
-                if self._math_dash._show_result == False:
-                    asyncio.create_task(self._start_new_round())
-    
-    def _process_network_messages(self) -> None:
-        """Process incoming network messages."""
-        while True:
-            message = self._network.get_message()
-            if message is None:
-                break
-            
-            msg_type = message.get("type", "")
-            
-            if msg_type == "connected":
-                # Initial connection
-                student_id = message.get("player_id", "")
-                if self._local_student:
-                    self._local_student._id = student_id
-            
-            elif msg_type == "player_joined":
-                player_data = message.get("player", {})
-                student_id = player_data.get("id", "")
-                if student_id and student_id != (self._local_student.id if self._local_student else ""):
-                    student = Student(student_id, player_data.get("username", "Student"))
-                    student.from_dict(player_data)
-                    self._students[student_id] = student
-            
-            elif msg_type == "player_left":
-                player_id = message.get("player_id", "")
-                self._students.pop(player_id, None)
-            
-            elif msg_type == "players_list":
-                players = message.get("players", [])
-                for player_data in players:
-                    student_id = player_data.get("id", "")
-                    if student_id and student_id != (self._local_student.id if self._local_student else ""):
-                        student = Student(student_id, player_data.get("username", "Student"))
-                        student.from_dict(player_data)
-                        self._students[student_id] = student
-            
-            elif msg_type == "profile_update":
-                player_data = message.get("player", {})
-                student_id = player_data.get("id", "")
-                if student_id in self._students:
-                    self._students[student_id].from_dict(player_data)
-            
-            elif msg_type == "ready_update":
-                player_id = message.get("player_id", "")
-                ready = message.get("ready", False)
-                if player_id in self._students:
-                    self._students[player_id].ready = ready
-            
-            elif msg_type == "game_start":
-                self.switch_state(GameState.MATH_MINIGAME)
-                if self._is_host:
-                    asyncio.create_task(self._start_new_round())
-            
-            elif msg_type == "game_action":
-                self._handle_game_action(message)
-    
-    def _handle_game_action(self, message: dict[str, Any]) -> None:
-        """Handle game action messages."""
-        action = message.get("action", {})
-        action_type = action.get("action_type", "")
-        
-        if action_type == "new_round":
-            problem = action.get("problem", {})
-            self._math_dash._setup_round(problem)
-        
-        elif action_type == "move":
-            player_id = message.get("player_id", "")
-            platform = action.get("platform", 0)
-            self._math_dash.set_player_platform(player_id, platform)
-            
-            # Update student position
-            if player_id in self._students and 0 <= platform < 3:
-                student = self._students[player_id]
-                platform_obj = self._math_dash._platforms[platform]
-                student.update_position(
-                    platform_obj.rect.centerx,
-                    platform_obj.rect.top - 70
-                )
-    
-    # Rendering
-    def render(self) -> None:
-        """Render the current game state."""
-        # Educational Mayhem theme
-        bg_color = MAYHEM_PURPLE if self._state in (GameState.LOBBY, GameState.PROFILE_VIEW) else CHALKBOARD_DARK
-        self._screen.fill(bg_color)
-        
-        if self._state == GameState.MENU:
-            self._render_menu()
-        elif self._state == GameState.LOBBY:
-            self._render_lobby()
-        elif self._state == GameState.PROFILE_VIEW:
-            self._render_profile()
-        elif self._state == GameState.MATH_MINIGAME:
-            self._render_game()
-        
-        pygame.display.flip()
-    
+
     def _render_menu(self) -> None:
-        """Render MENU state."""
+        self._screen.fill(CHALKBOARD_DARK)
         # Title
         font_title = pygame.font.Font(None, 72)
         title = font_title.render("EDU-PARTY", True, SCHOOL_BUS_YELLOW)
@@ -294,7 +268,7 @@ class GameController:
         
         # Subtitle
         font_sub = pygame.font.Font(None, 32)
-        subtitle = font_sub.render("OOP Game Engine Edition", True, CHALK_WHITE)
+        subtitle = font_sub.render("Educational Mayhem Edition", True, CHALK_WHITE)
         subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH // 2, 210))
         self._screen.blit(subtitle, subtitle_rect)
         
@@ -307,296 +281,178 @@ class GameController:
             "Press ENTER to Login",
             "Press R to Register"
         ]
-        
         y = 300
         for line in instructions:
             text = font.render(line, True, CHALK_WHITE)
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, y))
             self._screen.blit(text, text_rect)
             y += 40
-        
-        # Status message
+            
         if self._status_message:
             status = font.render(self._status_message, True, SCHOOL_BUS_YELLOW)
             status_rect = status.get_rect(center=(SCREEN_WIDTH // 2, 550))
             self._screen.blit(status, status_rect)
-    
-    def _render_lobby(self) -> None:
-        """Render LOBBY state (Homeroom) - Educational Mayhem."""
-        # Title
-        font_title = pygame.font.Font(None, 72)
-        title = font_title.render("EDUCATIONAL MAYHEM", True, SCHOOL_BUS_YELLOW)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 50))
-        self._screen.blit(title, title_rect)
-        
-        subtitle_font = pygame.font.Font(None, 32)
-        subtitle = subtitle_font.render("The Homeroom", True, CHALK_WHITE)
-        subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH // 2, 100))
-        self._screen.blit(subtitle, subtitle_rect)
-        
-        # Profile badge (top-right)
-        if self._local_student:
-            self._profile_badge.render(
-                self._screen,
-                self._local_student.username,
-                self._local_student.color,
-                self._local_student._shape
-            )
-        
-        # Class size
-        font = pygame.font.Font(None, 32)
-        class_size = len(self._students) + (1 if self._local_student else 0)
-        class_text = font.render(f"Class Size: {class_size}/15", True, CHALK_WHITE)
-        self._screen.blit(class_text, (50, 150))
-        
-        # Student preview (local)
-        if self._local_student:
-            self._local_student.render(self._screen, 50, 200, 80)
-            username_text = font.render(self._local_student.username, True, CHALK_WHITE)
-            self._screen.blit(username_text, (50, 290))
-            
-            ready_text = "READY!" if self._local_student.ready else "Not Ready"
-            ready_color = SCHOOL_BUS_YELLOW if self._local_student.ready else CHALK_WHITE
-            ready = font.render(ready_text, True, ready_color)
-            self._screen.blit(ready, (50, 320))
-        
-        # Controls
-        controls = [
-            "1/2/3: Change Color",
-            "G: Cycle Gear",
-            "SPACE: Toggle Ready",
-        ]
-        if self._is_host:
-            controls.append("S: Start Game")
-        
-        y = 370
-        small_font = pygame.font.Font(None, 24)
-        for control in controls:
-            text = small_font.render(control, True, CHALK_WHITE)
-            self._screen.blit(text, (50, y))
-            y += 30
-        
-        # Render other students in a grid
-        desk_x = 300
-        desk_y = 200
-        desk_spacing_x = 150
-        desk_spacing_y = 150
-        col = 0
-        row = 0
-        
-        for student in self._students.values():
-            x = desk_x + col * desk_spacing_x
-            y = desk_y + row * desk_spacing_y
-            
-            student.render(self._screen, x, y, 64)
-            
-            name_font = pygame.font.Font(None, 20)
-            name_text = name_font.render(student.username, True, CHALK_WHITE)
-            name_rect = name_text.get_rect(center=(x + 32, y + 75))
-            self._screen.blit(name_text, name_rect)
-            
-            if student.ready:
-                ready_indicator = name_font.render("✓", True, SCHOOL_BUS_YELLOW)
-                self._screen.blit(ready_indicator, (x + 50, y - 5))
-            
-            col += 1
-            if col >= 5:
-                col = 0
-                row += 1
-    
-    def _render_profile(self) -> None:
-        """Render PROFILE_VIEW state (Educational Mayhem)."""
-        if self._profile_view:
-            self._profile_view.render()
-    
+
     def _render_game(self) -> None:
-        """Render MATH_MINIGAME state."""
         # Title
+        self._screen.fill(CHALKBOARD_DARK)
         font_title = pygame.font.Font(None, 56)
         title = font_title.render("Math Dash!", True, SCHOOL_BUS_YELLOW)
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 40))
         self._screen.blit(title, title_rect)
         
-        # Render minigame
         self._math_dash.render(self._screen)
         
-        # Render students on platforms
+        # Render students
         if self._local_student:
-            platform_index = self._math_dash.get_player_platform(self._local_student.id)
-            if 0 <= platform_index < 3:
-                platform = self._math_dash._platforms[platform_index]
-                self._local_student.render(
-                    self._screen,
-                    platform.rect.centerx - 32,
-                    platform.rect.top - 70,
-                    64
-                )
+            self._render_student_on_platform(self._local_student)
         
         for student in self._students.values():
-            platform_index = self._math_dash.get_player_platform(student.id)
-            if 0 <= platform_index < 3:
-                platform = self._math_dash._platforms[platform_index]
-                student.render(
-                    self._screen,
-                    platform.rect.centerx - 32,
-                    platform.rect.top - 70,
-                    64
-                )
-        
+            self._render_student_on_platform(student)
+            
         # Controls reminder
         font_small = pygame.font.Font(None, 24)
         controls = font_small.render("Use 1/2/3 or A/D or Arrow Keys to move", True, CHALK_WHITE)
         controls_rect = controls.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 30))
         self._screen.blit(controls, controls_rect)
-    
-    # Helper methods
+
+    def _render_student_on_platform(self, student):
+        platform_index = self._math_dash.get_player_platform(student.id)
+        if 0 <= platform_index < 3:
+            platform = self._math_dash._platforms[platform_index]
+            student.render(self._screen, platform.rect.centerx - 32, platform.rect.top - 70, 64)
+
+    # Network Logic
     async def _attempt_login(self) -> None:
-        """Attempt to login."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"{API_URL}/api/login",
-                    json={
-                        "username": self._username_input,
-                        "password": self._password_input
-                    }
+                    json={"username": self._username_input, "password": self._password_input}
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
                         self._token = data["access_token"]
-                        await self._create_and_join_lobby(data["username"])
+                        self._local_student = Student("temp_id", data["username"])
+                        # Success - Go to Lobby List
+                        self.switch_state(GameState.LOBBY_LIST)
                     else:
                         self._status_message = "Login failed"
         except Exception as e:
             self._status_message = f"Error: {str(e)}"
-    
+
     async def _attempt_register(self) -> None:
-        """Attempt to register."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"{API_URL}/api/register",
-                    json={
-                        "username": self._username_input,
-                        "password": self._password_input
-                    }
+                    json={"username": self._username_input, "password": self._password_input}
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
                         self._token = data["access_token"]
-                        await self._create_and_join_lobby(data["username"])
+                        self._local_student = Student("temp_id", data["username"])
+                        self.switch_state(GameState.LOBBY_LIST)
                     else:
                         self._status_message = "Registration failed"
         except Exception as e:
             self._status_message = f"Error: {str(e)}"
-    
-    async def _create_and_join_lobby(self, username: str) -> None:
-        """Create lobby and join."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{API_URL}/api/lobby/create",
-                    params={"token": self._token}
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        self._lobby_id = data["lobby_id"]
-                        
-                        # Create local student
-                        self._local_student = Student("temp_id", username)
-                        
-                        # Connect to WebSocket
-                        connected = await self._network.connect(self._lobby_id, self._token)
-                        if connected:
-                            self._is_host = True
-                            self.switch_state(GameState.LOBBY)
-        except Exception as e:
-            self._status_message = f"Lobby error: {str(e)}"
-    
-    def _cycle_gear(self) -> None:
-        """Cycle through gear items."""
-        if not self._local_student:
-            return
-        
-        # Get current gear item
-        current_gear = GEAR_DATABASE[self._gear_index]
-        
-        # Toggle it
-        self._local_student.toggle_gear(current_gear)
-        
-        # Move to next
-        self._gear_index = (self._gear_index + 1) % len(GEAR_DATABASE)
-        
-        # Sync to server
-        asyncio.create_task(self._network.update_profile(gear=self._local_student.gear))
-    
-    def _change_color(self, color: str) -> None:
-        """Change student color."""
-        if self._local_student:
-            self._local_student.color = color
-            asyncio.create_task(self._network.update_profile(color=color))
-    
-    def _move_to_platform(self, platform_index: int) -> None:
-        """Move student to a platform."""
+
+    def _process_network_messages(self) -> None:
+        """Process incoming network messages."""
+        while True:
+            message = self._network.get_message()
+            if message is None:
+                break
+            
+            msg_type = message.get("type", "")
+            
+            if msg_type == "connected":
+                student_id = message.get("player_id", "")
+                if self._local_student:
+                    self._local_student._id = student_id
+                    
+            elif msg_type == "player_joined":
+                player_data = message.get("player", {})
+                student_id = player_data.get("id", "")
+                if student_id and student_id != (self._local_student.id if self._local_student else ""):
+                    student = Student(student_id, player_data.get("username", "Student"))
+                    student.from_dict(player_data)
+                    self._students[student_id] = student
+                    
+            elif msg_type == "player_left":
+                player_id = message.get("player_id", "")
+                self._students.pop(player_id, None)
+                
+            elif msg_type == "players_list":
+                players = message.get("players", [])
+                for p_data in players:
+                    sid = p_data.get("id")
+                    if sid and sid != (self._local_student.id if self._local_student else ""):
+                         s = Student(sid, p_data.get("username", "Student"))
+                         s.from_dict(p_data)
+                         self._students[sid] = s
+
+            elif msg_type == "profile_update":
+                p_data = message.get("player", {})
+                sid = p_data.get("id")
+                if sid in self._students:
+                    self._students[sid].from_dict(p_data)
+                elif self._local_student and sid == self._local_student.id:
+                    self._local_student.from_dict(p_data)
+
+            elif msg_type == "ready_update":
+                pid = message.get("player_id")
+                r = message.get("ready")
+                if pid in self._students:
+                    self._students[pid].ready = r
+                elif self._local_student and pid == self._local_student.id:
+                    self._local_student.ready = r
+                    
+            elif msg_type == "game_start":
+                self.switch_state(GameState.MATH_MINIGAME)
+                if self._is_host:
+                    asyncio.create_task(self._start_new_round())
+                    
+            elif msg_type == "game_action":
+                self._handle_game_action(message)
+
+    def _handle_game_action(self, message):
+         action = message.get("action", {})
+         action_type = action.get("action_type", "")
+         
+         if action_type == "new_round":
+             problem = action.get("problem", {})
+             self._math_dash._setup_round(problem)
+             
+         elif action_type == "move":
+             player_id = message.get("player_id", "")
+             platform = action.get("platform", 0)
+             self._math_dash.set_player_platform(player_id, platform)
+
+    def _move_to_platform(self, platform_index):
         if not self._local_student or not self._math_dash.active:
             return
-        
         self._math_dash.set_player_platform(self._local_student.id, platform_index)
-        
-        # Update position
-        if 0 <= platform_index < 3:
-            platform = self._math_dash._platforms[platform_index]
-            self._local_student.update_position(
-                platform.rect.centerx,
-                platform.rect.top - 70
-            )
-        
-        # Send to server
         asyncio.create_task(self._network.send_game_action({
-            "action_type": "move",
-            "platform": platform_index
+            "action_type": "move", "platform": platform_index
         }))
-    
-    async def _start_new_round(self) -> None:
-        """Generate and broadcast new math problem."""
+
+    async def _start_new_round(self):
         problem_data = self._math_dash.generate_problem()
         await self._network.send_game_action({
-            "action_type": "new_round",
-            "problem": problem_data
+            "action_type": "new_round", "problem": problem_data
         })
-    
-    # Educational Mayhem: Profile system methods
-    def _open_profile_view(self) -> None:
-        """Open the character customizer."""
-        if not self._local_student:
-            return
-        
-        self._previous_state = self._state
-        self._profile_view = ProfileView(self._screen, self._local_student, self._token)
-        self.switch_state(GameState.PROFILE_VIEW)
-    
-    async def _save_profile_changes(self) -> None:
-        """Save profile changes and return to previous state."""
-        if self._profile_view:
-            success = await self._profile_view.save_changes(self._network)
-            if success:
-                self.switch_state(self._previous_state)
-    
-    # Main loop
+
     async def run(self) -> None:
         """Main async game loop (60 FPS)."""
         while self._running:
             dt = self._clock.tick(FPS) / 1000.0
-            
             self.handle_events()
             self.update(dt)
             self.render()
-            
-            # Yield to async tasks
             await asyncio.sleep(0)
         
-        # Cleanup
         if self._network.connected:
             await self._network.disconnect()
-        
         pygame.quit()

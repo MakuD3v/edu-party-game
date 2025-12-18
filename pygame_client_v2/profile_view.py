@@ -3,35 +3,28 @@ Profile View - Character Customizer Screen
 Educational Mayhem themed profile editing interface.
 """
 import pygame
-import aiohttp
+import asyncio
 from typing import Any
 from constants import (
     MAYHEM_PURPLE, CHALK_WHITE, SCHOOL_BUS_YELLOW, CHALKBOARD_DARK,
     SCREEN_WIDTH, SCREEN_HEIGHT, SHAPE_DATABASE, API_URL
 )
+from views.base_view import BaseView
 from ui_widgets import Button, TextInput
 from student import Student
 
 
-class ProfileView:
+class ProfileView(BaseView):
     """Character customizer screen for Educational Mayhem."""
     
-    def __init__(self, screen: pygame.Surface, student: Student, token: str):
-        """Initialize profile view.
+    def __init__(self, screen: pygame.Surface, game_controller: Any):
+        """Initialize profile view."""
+        super().__init__(screen, game_controller)
         
-        Args:
-            screen: Pygame display surface
-            student: Local student to edit
-            token: Auth token for API calls
-        """
-        self._screen = screen
-        self._student = student
-        self._token = token
-        
-        # Temporary editing values
-        self._edit_username = student.username
-        self._edit_color = student.color
-        self._edit_shape = student._shape
+        # Initialize with temporary defaults, will populate on_enter
+        self._edit_username = "Student"
+        self._edit_color = "red"
+        self._edit_shape = "circle"
         
         # UI components
         self._username_input = TextInput(
@@ -46,7 +39,7 @@ class ProfileView:
         for i, shape in enumerate(SHAPE_DATABASE):
             x = SCREEN_WIDTH // 2 - (len(SHAPE_DATABASE) * button_spacing) // 2 + i * button_spacing
             self._shape_buttons.append(
-                ShapeButton(x, button_y, 100, 100, shape, shape == self._edit_shape)
+                ShapeButton(x, button_y, 100, 100, shape)
             )
         
         # Color buttons
@@ -56,7 +49,7 @@ class ProfileView:
         for i, color in enumerate(colors):
             x = SCREEN_WIDTH // 2 - 150 + i * 100
             self._color_buttons.append(
-                ColorButton(x, color_y, 80, 80, color, color == self._edit_color)
+                ColorButton(x, color_y, 80, 80, color)
             )
         
         # Action buttons
@@ -66,23 +59,59 @@ class ProfileView:
         )
         self._cancel_button = Button(
             SCREEN_WIDTH // 2 + 10, SCREEN_HEIGHT - 100, 100, 50,
-            "Cancel", (150, 150, 150), on_click=lambda: None
+            "Cancel", (150, 150, 150), on_click=self._on_cancel
         )
-        
-        self._cancel_requested = False
     
-    def handle_event(self, event: pygame.event.Event) -> str | None:
-        """Handle events.
-        
-        Args:
-            event: Pygame event
+    def on_enter(self, *args, **kwargs) -> None:
+        """Called when entering the view."""
+        student = self.game_controller.local_student
+        if student:
+            self._edit_username = student.username
+            self._edit_color = student.color
+            self._edit_shape = student._shape
             
-        Returns:
-            "cancel" if user canceled, "save" if saved, None otherwise
-        """
+            # Update UI state
+            self._username_input.text = self._edit_username
+            
+            for b in self._shape_buttons:
+                b.selected = (b.shape == self._edit_shape)
+            
+            for b in self._color_buttons:
+                b.selected = (b.color == self._edit_color)
+    
+    def _on_save(self) -> None:
+        """Handle save button click."""
+        asyncio.create_task(self._save_changes())
+        
+    def _on_cancel(self) -> None:
+        """Navigate back."""
+        # Typically return to LOBBY or previous state
+        self.game_controller.switch_state("LOBBY")  # Or previous state
+
+    async def _save_changes(self) -> None:
+        """Save to backend."""
+        # Update local student immediately for responsiveness
+        student = self.game_controller.local_student
+        if student:
+            student.username = self._edit_username
+            student.color = self._edit_color
+            student._shape = self._edit_shape
+            
+            # Use network manager
+            await self.game_controller.network_manager.update_profile(
+                 username=self._edit_username,
+                 color=self._edit_color,
+                 shape=self._edit_shape,
+                 token=self.game_controller.token
+            )
+            
+            self.game_controller.switch_state("LOBBY")
+
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Handle events."""
         # Username input
-        self._username_input.handle_event(event)
-        self._edit_username = self._username_input.text
+        if self._username_input.handle_event(event):
+             self._edit_username = self._username_input.text
         
         # Shape buttons
         for button in self._shape_buttons:
@@ -100,16 +129,12 @@ class ProfileView:
                     b.selected = (b.color == self._edit_color)
         
         # Action buttons
-        if self._save_button.handle_event(event):
-            return "save"
-        if self._cancel_button.handle_event(event):
-            return "cancel"
+        self._save_button.handle_event(event)
+        self._cancel_button.handle_event(event)
         
         # ESC key to cancel
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            return "cancel"
-        
-        return None
+            self._on_cancel()
     
     def update(self, dt: float) -> None:
         """Update animations."""
@@ -118,92 +143,49 @@ class ProfileView:
     def render(self) -> None:
         """Render the profile customizer."""
         # Background
-        self._screen.fill(MAYHEM_PURPLE)
+        self.screen.fill(MAYHEM_PURPLE)
         
         # Educational Mayhem title
         title_font = pygame.font.Font(None, 72)
         title = title_font.render("CHARACTER CUSTOMIZER", True, SCHOOL_BUS_YELLOW)
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))
-        self._screen.blit(title, title_rect)
+        self.screen.blit(title, title_rect)
         
         # Username section
         label_font = pygame.font.Font(None, 32)
         username_label = label_font.render("Username:", True, CHALK_WHITE)
-        self._screen.blit(username_label, (SCREEN_WIDTH // 2 - 150, 160))
-        self._username_input.draw(self._screen)
+        self.screen.blit(username_label, (SCREEN_WIDTH // 2 - 150, 160))
+        self._username_input.draw(self.screen)
         
         # Shape section
         shape_label = label_font.render("Choose Your Shape:", True, CHALK_WHITE)
         shape_rect = shape_label.get_rect(center=(SCREEN_WIDTH // 2, 260))
-        self._screen.blit(shape_label, shape_rect)
+        self.screen.blit(shape_label, shape_rect)
         
         for button in self._shape_buttons:
-            button.draw(self._screen)
+            button.draw(self.screen)
         
         # Color section
         color_label = label_font.render("Choose Your Color:", True, CHALK_WHITE)
         color_rect = color_label.get_rect(center=(SCREEN_WIDTH // 2, 410))
-        self._screen.blit(color_label, color_rect)
+        self.screen.blit(color_label, color_rect)
         
         for button in self._color_buttons:
-            button.draw(self._screen)
+            button.draw(self.screen)
         
         # Preview
         preview_label = label_font.render("Preview:", True, CHALK_WHITE)
-        self._screen.blit(preview_label, (SCREEN_WIDTH // 2 - 100, 550))
+        self.screen.blit(preview_label, (SCREEN_WIDTH // 2 - 100, 550))
         
         # Render preview character
         preview_student = Student("preview", self._edit_username)
         preview_student._shape = self._edit_shape
         preview_student.color = self._edit_color
-        preview_student.render(self._screen, SCREEN_WIDTH // 2 - 40, 600, 80)
+        preview_student.render(self.screen, SCREEN_WIDTH // 2 - 40, 600, 80)
         
         # Action buttons
-        self._save_button.draw(self._screen)
-        self._cancel_button.draw(self._screen)
-    
-    def _on_save(self) -> None:
-        """Handle save button click."""
-        pass  # Handled by parent controller
-    
-    async def save_changes(self, network_manager: Any) -> bool:
-        """Save profile changes to server.
-        
-        Args:
-            network_manager: NetworkManager instance
-            
-        Returns:
-            True if successful
-        """
-        try:
-            # Update local student
-            self._student.username = self._edit_username
-            self._student.color = self._edit_color
-            self._student._shape = self._edit_shape
-            
-            # POST to API
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{API_URL}/api/profile/update",
-                    params={"token": self._token},
-                    json={
-                        "username": self._edit_username,
-                        "color": self._edit_color,
-                        "shape": self._edit_shape
-                    }
-                ) as response:
-                    if response.status == 200:
-                        # Send via WebSocket for real-time sync
-                        await network_manager.update_profile(
-                            username=self._edit_username,
-                            color=self._edit_color,
-                            shape=self._edit_shape
-                        )
-                        return True
-            return False
-        except Exception as e:
-            print(f"Error saving profile: {e}")
-            return False
+        self._save_button.draw(self.screen)
+        self._cancel_button.draw(self.screen)
 
 
 class ShapeButton:
