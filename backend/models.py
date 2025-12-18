@@ -4,7 +4,7 @@ SQLAlchemy models for user authentication and player profiles.
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from .database import Base
+from database import Base
 
 
 class User(Base):
