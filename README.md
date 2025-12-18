@@ -2,6 +2,21 @@
 
 A web-based multiplayer game prototype with Fall Guys-style gameplay mechanics, built with FastAPI backend, PostgreSQL database, and Godot 4 game client.
 
+## 🚀 Quick Deploy to Render (Recommended!)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+**5-Minute Deployment:**
+
+1. **Push this repo to GitHub**
+2. **Go to Render.com** → New → Blueprint
+3. **Connect your repo** and deploy!
+4. **Your app will be live** at `https://your-app-name.onrender.com`
+
+📖 **Detailed deployment guide**: See [DEPLOY.md](DEPLOY.md)
+
+---
+
 ## 🎮 Features
 
 - **Mobile-First Design**: Optimized for both mobile and desktop play
