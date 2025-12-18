@@ -9,17 +9,20 @@ from enum import Enum, auto
 from typing import Any
 from constants import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, API_URL,
-    CHALKBOARD_DARK, CHALK_WHITE, SCHOOL_BUS_YELLOW, GEAR_DATABASE
+    CHALKBOARD_DARK, CHALK_WHITE, SCHOOL_BUS_YELLOW, MAYHEM_PURPLE, GEAR_DATABASE
 )
 from student import Student
 from network_manager import NetworkManager
 from math_dash import MathDash
+from profile_badge import ProfileBadge
+from profile_view import ProfileView
 
 
 class GameState(Enum):
-    """Game state enumeration."""
+    """Game state enumeration for Educational Mayhem."""
     MENU = auto()
     LOBBY = auto()
+    PROFILE_VIEW = auto()  # Educational Mayhem: Character customizer
     MATH_MINIGAME = auto()
 
 
@@ -52,6 +55,11 @@ class GameController:
         
         # Minigame
         self._math_dash: MathDash = MathDash(SCREEN_WIDTH, SCREEN_HEIGHT)
+        
+        # Educational Mayhem: Profile system
+        self._profile_badge: ProfileBadge = ProfileBadge()
+        self._profile_view: ProfileView | None = None
+        self._previous_state: GameState = GameState.LOBBY  # For returning from profile
         
         # UI state
         self._username_input: str = "Student1"
@@ -91,6 +99,9 @@ class GameController:
             elif self._state == GameState.LOBBY:
                 self._handle_lobby_events(event)
             
+            elif self._state == GameState.PROFILE_VIEW:
+                self._handle_profile_events(event)
+            
             elif self._state == GameState.MATH_MINIGAME:
                 self._handle_game_events(event)
     
@@ -106,6 +117,11 @@ class GameController:
     
     def _handle_lobby_events(self, event: pygame.event.Event) -> None:
         """Handle events in LOBBY state."""
+        # Profile badge click (Educational Mayhem)
+        if self._local_student and self._profile_badge.handle_event(event):
+            self._open_profile_view()
+            return
+        
         if event.type == pygame.KEYDOWN:
             # Gear cycling
             if event.key == pygame.K_g and self._local_student:
@@ -128,6 +144,18 @@ class GameController:
             # Start game (host only)
             elif event.key == pygame.K_s and self._is_host:
                 asyncio.create_task(self._network.start_game())
+    
+    def _handle_profile_events(self, event: pygame.event.Event) -> None:
+        """Handle events in PROFILE_VIEW state (Educational Mayhem)."""
+        if not self._profile_view:
+            return
+        
+        action = self._profile_view.handle_event(event)
+        
+        if action == "save":
+            asyncio.create_task(self._save_profile_changes())
+        elif action == "cancel":
+            self.switch_state(self._previous_state)
     
     def _handle_game_events(self, event: pygame.event.Event) -> None:
         """Handle events in MATH_MINIGAME state."""
@@ -241,12 +269,16 @@ class GameController:
     # Rendering
     def render(self) -> None:
         """Render the current game state."""
-        self._screen.fill(CHALKBOARD_DARK)
+        # Educational Mayhem theme
+        bg_color = MAYHEM_PURPLE if self._state in (GameState.LOBBY, GameState.PROFILE_VIEW) else CHALKBOARD_DARK
+        self._screen.fill(bg_color)
         
         if self._state == GameState.MENU:
             self._render_menu()
         elif self._state == GameState.LOBBY:
             self._render_lobby()
+        elif self._state == GameState.PROFILE_VIEW:
+            self._render_profile()
         elif self._state == GameState.MATH_MINIGAME:
             self._render_game()
         
@@ -290,29 +322,43 @@ class GameController:
             self._screen.blit(status, status_rect)
     
     def _render_lobby(self) -> None:
-        """Render LOBBY state (Homeroom)."""
+        """Render LOBBY state (Homeroom) - Educational Mayhem."""
         # Title
-        font_title = pygame.font.Font(None, 56)
-        title = font_title.render("The Homeroom", True, SCHOOL_BUS_YELLOW)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 40))
+        font_title = pygame.font.Font(None, 72)
+        title = font_title.render("EDUCATIONAL MAYHEM", True, SCHOOL_BUS_YELLOW)
+        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 50))
         self._screen.blit(title, title_rect)
+        
+        subtitle_font = pygame.font.Font(None, 32)
+        subtitle = subtitle_font.render("The Homeroom", True, CHALK_WHITE)
+        subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        self._screen.blit(subtitle, subtitle_rect)
+        
+        # Profile badge (top-right)
+        if self._local_student:
+            self._profile_badge.render(
+                self._screen,
+                self._local_student.username,
+                self._local_student.color,
+                self._local_student._shape
+            )
         
         # Class size
         font = pygame.font.Font(None, 32)
         class_size = len(self._students) + (1 if self._local_student else 0)
         class_text = font.render(f"Class Size: {class_size}/15", True, CHALK_WHITE)
-        self._screen.blit(class_text, (50, 100))
+        self._screen.blit(class_text, (50, 150))
         
         # Student preview (local)
         if self._local_student:
-            self._local_student.render(self._screen, 50, 150, 80)
+            self._local_student.render(self._screen, 50, 200, 80)
             username_text = font.render(self._local_student.username, True, CHALK_WHITE)
-            self._screen.blit(username_text, (50, 240))
+            self._screen.blit(username_text, (50, 290))
             
             ready_text = "READY!" if self._local_student.ready else "Not Ready"
             ready_color = SCHOOL_BUS_YELLOW if self._local_student.ready else CHALK_WHITE
             ready = font.render(ready_text, True, ready_color)
-            self._screen.blit(ready, (50, 270))
+            self._screen.blit(ready, (50, 320))
         
         # Controls
         controls = [
@@ -323,7 +369,7 @@ class GameController:
         if self._is_host:
             controls.append("S: Start Game")
         
-        y = 320
+        y = 370
         small_font = pygame.font.Font(None, 24)
         for control in controls:
             text = small_font.render(control, True, CHALK_WHITE)
@@ -332,7 +378,7 @@ class GameController:
         
         # Render other students in a grid
         desk_x = 300
-        desk_y = 150
+        desk_y = 200
         desk_spacing_x = 150
         desk_spacing_y = 150
         col = 0
@@ -357,6 +403,11 @@ class GameController:
             if col >= 5:
                 col = 0
                 row += 1
+    
+    def _render_profile(self) -> None:
+        """Render PROFILE_VIEW state (Educational Mayhem)."""
+        if self._profile_view:
+            self._profile_view.render()
     
     def _render_game(self) -> None:
         """Render MATH_MINIGAME state."""
@@ -513,6 +564,23 @@ class GameController:
             "action_type": "new_round",
             "problem": problem_data
         })
+    
+    # Educational Mayhem: Profile system methods
+    def _open_profile_view(self) -> None:
+        """Open the character customizer."""
+        if not self._local_student:
+            return
+        
+        self._previous_state = self._state
+        self._profile_view = ProfileView(self._screen, self._local_student, self._token)
+        self.switch_state(GameState.PROFILE_VIEW)
+    
+    async def _save_profile_changes(self) -> None:
+        """Save profile changes and return to previous state."""
+        if self._profile_view:
+            success = await self._profile_view.save_changes(self._network)
+            if success:
+                self.switch_state(self._previous_state)
     
     # Main loop
     async def run(self) -> None:

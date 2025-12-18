@@ -1,104 +1,151 @@
-# EDU-PARTY OOP Game Engine - Quick Start
+# Educational Mayhem - Quick Start Guide
 
-## Running the OOP Edition
+## What's New
 
-### 1. Start Backend Server
+**Educational Mayhem** is the rebranded evolution of EDU-PARTY with a professional profile system!
+
+### New Features:
+- 🎭 **Profile Badge** - Top-right corner shows your character + name
+- ✏️ **Character Customizer** - Click badge to edit username, shape, and color
+- 🔷 **5 Shapes Available** - Circle, Square, Triangle, Star, Hexagon
+- 🎨 **New Theme** - Purple Mayhem background (#663399) with School Bus Yellow (#F1C40F)
+- 🔐 **Python 3.13 Compliant** - No deprecated typing imports
+
+---
+
+## Running Educational Mayhem
+
+### 1. Start Backend
 ```bash
-# From EDU_PARTY_FINAL directory
 start_server.bat
 ```
 
 ### 2. Launch OOP Client
 ```bash
-cd pygame_client_v2
-python main.py
-```
-
-OR use the launcher:
-```bash
 start_client_v2.bat
 ```
 
+---
+
 ## Controls
 
-### Menu (Login Screen):
-- **ENTER**: Login with default credentials
-- **R**: Register new account
+### Menu (Login):
+- **ENTER**: Login
+- **R**: Register
 
 ### Lobby (Homeroom):
-- **1/2/3**: Change color (Red/Blue/Green)
-- **G**: Cycle through gear items (Graduation Cap, Science Goggles, etc.)
-- **SPACE**: Toggle ready status
+- **Click Profile Badge**: Open character customizer
+- **1/2/3**: Quick color change (Red/Blue/Green)
+- **G**: Cycle gear
+- **SPACE**: Toggle ready
 - **S**: Start game (host only)
 
-### Math Dash Game:
-- **1** or **A** or **←**: Move to left platform
-- **2**: Move to middle platform
-- **3** or **D** or **→**: Move to right platform
+### Profile Customizer:
+- **Click Shape Buttons**: Choose your shape
+- **Click Color Buttons**: Choose your color
+- **Type in Username Field**: Edit name
+- **Save Button**: Apply changes
+- **Cancel or ESC**: Return to lobby
 
-## OOP Architecture
+### Math Dash:
+- **1/2/3** or **A/D** or **Arrows**: Move between platforms
 
-### Core Classes
+---
 
-**Student** (`student.py`)
-- Encapsulates player state (username, position, color, gear)
-- Properties with getters/setters
-- Rendering with gear visualization
-- Serialization methods
+## Educational Mayhem Features
 
-**NetworkManager** (`network_manager.py`)
-- WebSocket lifecycle management
-- Async message queues (send/receive)
-- Connection handling with auto-cleanup
+### Profile System
+- **Profile Badge**: Always visible in top-right corner
+- **Edit Anytime**: Click badge to customize without leaving lobby
+- **Real-time Sync**: Changes broadcast instantly to all players
+- **WebSocket Persistence**: Connection maintained during customization
 
-**GameController** (`game_controller.py`)
-- Master orchestrator
-- State machine: MENU → LOBBY → MATH_MINIGAME
-- Event handling per state
-- 60 FPS async game loop
+### Shape System
+5 distinct character shapes:
+1. **Circle** - Classic round shape
+2. **Square** - Angular and bold
+3. **Triangle** - Sharp and dynamic
+4. **Star** - Stand out with 5 points
+5. **Hexagon** - Modern geometric look
 
-**MathDash** (`math_dash.py`)
-- Problem generation (+, -, ×)
-- AnswerPlatform management
-- Collision detection
-- Round timing
+### Theme Updates
+- **Background**: Mayhem Purple (#663399)
+- **Primary Accent**: School Bus Yellow (#F1C40F)
+- **Text**: Chalk White (#ECF0F1)
+- **Title**: "EDUCATIONAL MAYHEM"
 
-### Design Principles
+---
 
-✅ **Encapsulation**: Private attributes (`_variable`), public properties
-✅ **Single Responsibility**: Each class has one clear purpose
-✅ **Python 3.13**: Modern type hints (`list[str]`, `dict[str, Any]`, `| None`)
-✅ **Async Integration**: Non-blocking WebSockets + 60 FPS rendering
+## Technical Details
 
-### Color Scheme
+### Backend Updates
+- `ProfileUpdate` model with `shape` field
+- Shape validation: `square|circle|triangle|star|hexagon`
+- Strict Python 3.13 typing (`str | None`, `list[str]`)
 
-- **Background**: `#2C3E50` (Chalkboard Dark)
-- **Text**: `#ECF0F1` (Chalk White)
-- **Accent**: `#F1C40F` (School Bus Yellow)
+### Frontend Architecture
+- **PROFILE_VIEW** state added to GameController
+- **ProfileBadge** component for top-right UI
+- **ProfileView** full-screen customizer
+- **Student** class with shape-based rendering
 
-### Gear Database
+---
 
-5 gear items available via cycling (G key):
-1. Graduation Cap
-2. Science Goggles
-3. Backpack
-4. Calculator Watch
-5. Pencil Case
+## File Structure
 
-## Features
+```
+pygame_client_v2/
+├── main.py                    # Entry point
+├── game_controller.py         # Master class with PROFILE_VIEW ✨
+├── student.py                 # Shape rendering support ✨
+├── profile_badge.py           # Top-right badge ✨ NEW
+├── profile_view.py            # Customizer screen ✨ NEW
+├── constants.py               # Updated colors ✨
+├── network_manager.py         # WebSocket handler
+├── math_dash.py               # Minigame logic
+├── ui_widgets.py              # Reusable components
+└── requirements.txt
+```
 
-- **OOP Design**: Proper encapsulation and state management
-- **Type Safety**: Full Python 3.13 type hints (no deprecated imports)
-- **Async Multiplayer**: Non-blocking WebSocket communication
-- **Visual Feedback**: Character customization with real-time rendering
-- **Educational Content**: Auto-generated math problems
+---
 
 ## Troubleshooting
 
-**TypeError with typing**:
-- Ensure Python 3.9+ is installed
-- Modern type hints used throughout (no `typing.List`)
+**Profile badge not clickable?**
+- Make sure you're in the lobby state
+- Profile badge only appears when logged in
 
-**Connection Issues**:
-- Start backend first with `start_server.bat`
+**Shapes not rendering?**
+- Check that Python 3.9+ is installed
+- Verify `pygame >= 2.5.0`
+
+**Connection issues?**
+- Start backend first (`start_server.bat`)
 - Check port 8000 is available
+
+---
+
+## API Endpoints
+
+### Profile Update
+```http
+POST /api/profile/update?token={token}
+Content-Type: application/json
+
+{
+  "username": "NewName",
+  "color": "blue",
+  "shape": "star",
+  "gear": ["Graduation Cap"]
+}
+```
+
+**Shape Validation**: Must be one of `square`, `circle`, `triangle`, `star`, `hexagon`
+
+---
+
+## What's Next?
+
+Try customizing your character and see your changes appear instantly in the lobby! The WebSocket connection stays alive, so you can edit your profile without disconnecting from your friends.
+
+Enjoy Educational Mayhem! 🎓✏️🎮

@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any
 import uuid
 import os
 
@@ -70,9 +70,13 @@ class ProfileResponse(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    username: Optional[str] = None
-    color: Optional[str] = None
-    gear: Optional[list[str]] = None
+    """Profile update model with Python 3.13 strict typing."""
+    username: str | None = None
+    color: str | None = None
+    shape: str | None = None  # square, circle, triangle, star, hexagon
+    gear: list[str] | None = None
+    
+    model_config = {"from_attributes": True}  # Pydantic v2
 
 
 class LobbyCreate(BaseModel):
@@ -216,7 +220,10 @@ async def get_profile(token: str, db: AsyncSession = Depends(get_db)):
 
 @app.post("/api/profile/update")
 async def update_profile(profile_data: ProfileUpdate, token: str, db: AsyncSession = Depends(get_db)):
-    """Update user profile (username and character customization)."""
+    """Update user profile (username, color, shape, and character customization)."""
+    # Valid shapes for Educational Mayhem
+    VALID_SHAPES = ["square", "circle", "triangle", "star", "hexagon"]
+    
     username = decode_token(token)
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
@@ -227,6 +234,13 @@ async def update_profile(profile_data: ProfileUpdate, token: str, db: AsyncSessi
     
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Validate shape if provided
+    if profile_data.shape and profile_data.shape.lower() not in VALID_SHAPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid shape. Must be one of: {', '.join(VALID_SHAPES)}"
+        )
     
     # Update username if provided
     if profile_data.username and profile_data.username != username:

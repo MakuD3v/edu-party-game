@@ -5,7 +5,7 @@ Manages concurrent game lobbies with up to 50 players each.
 import asyncio
 import uuid
 from datetime import datetime
-from typing import Dict, Optional, List
+from typing import Any
 from dataclasses import dataclass, field
 from fastapi import WebSocket
 
@@ -16,25 +16,27 @@ class Player:
     id: str
     username: str
     websocket: WebSocket
-    lobby_id: Optional[str] = None
+    lobby_id: str | None = None
     
-    # EDU-PARTY: Character customization
+    # Educational Mayhem: Character customization
     color: str = "red"  # red, blue, green
-    gear: List[str] = field(default_factory=list)  # glasses, cap, backpack
+    shape: str = "circle"  # square, circle, triangle, star, hexagon
+    gear: list[str] = field(default_factory=list)  # glasses, cap, backpack
     ready_status: bool = False
     
     # Game state
-    position: Dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0, "z": 0})
-    velocity: Dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0, "z": 0})
+    position: dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0, "z": 0})
+    velocity: dict[str, float] = field(default_factory=lambda: {"x": 0, "y": 0, "z": 0})
     rotation: float = 0.0
     state: str = "idle"  # idle, running, jumping, falling, eliminated
     
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Convert player to dictionary for broadcasting."""
         return {
             "id": self.id,
             "username": self.username,
             "color": self.color,
+            "shape": self.shape,
             "gear": self.gear,
             "ready_status": self.ready_status,
             "position": self.position,

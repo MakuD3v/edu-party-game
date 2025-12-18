@@ -28,6 +28,7 @@ class Student:
         self._username: str = username
         self._position: dict[str, float] = {"x": 0.0, "y": 0.0}
         self._color: str = "red"
+        self._shape: str = "circle"  # Educational Mayhem: shape support
         self._gear: list[str] = []
         self._ready: bool = False
     
@@ -128,7 +129,7 @@ class Student:
     
     # Rendering methods
     def render(self, surface: pygame.Surface, x: int, y: int, size: int = 64) -> None:
-        """Render student character at specified position.
+        """Render student character at specified position with shape support.
         
         Args:
             surface: Pygame surface to draw on
@@ -139,26 +140,113 @@ class Student:
         body_color = self.COLOR_MAP.get(self._color, STUDENT_RED)
         center = (x + size // 2, y + size // 2)
         
-        # Draw body (circle)
-        pygame.draw.circle(surface, body_color, center, size // 2)
+        # Draw shape-based body
+        if self._shape == "circle":
+            self._render_circle(surface, center, size, body_color)
+        elif self._shape == "square":
+            self._render_square(surface, center, size, body_color)
+        elif self._shape == "triangle":
+            self._render_triangle(surface, center, size, body_color)
+        elif self._shape == "star":
+            self._render_star(surface, center, size, body_color)
+        elif self._shape == "hexagon":
+            self._render_hexagon(surface, center, size, body_color)
+        else:
+            # Default to circle
+            self._render_circle(surface, center, size, body_color)
+        
+        # Draw gear
+        self._render_gear(surface, center, size)
+    
+    def _render_circle(self, surface: pygame.Surface, center: tuple[int, int], 
+                      size: int, color: tuple[int, int, int]) -> None:
+        """Render circle shape."""
+        pygame.draw.circle(surface, color, center, size // 2)
         pygame.draw.circle(surface, CHALK_WHITE, center, size // 2, 3)
         
-        # Draw eyes
+        # Eyes
         eye_y = center[1] - size // 6
         pygame.draw.circle(surface, CHALK_WHITE, (center[0] - size//6, eye_y), size//12)
         pygame.draw.circle(surface, CHALK_WHITE, (center[0] + size//6, eye_y), size//12)
         pygame.draw.circle(surface, (0, 0, 0), (center[0] - size//6, eye_y), size//18)
         pygame.draw.circle(surface, (0, 0, 0), (center[0] + size//6, eye_y), size//18)
         
-        # Draw smile
-        pygame.draw.arc(
-            surface, CHALK_WHITE,
-            (center[0] - size//4, center[1] - size//12, size//2, size//3),
-            3.14, 0, 3
-        )
+        # Smile
+        pygame.draw.arc(surface, CHALK_WHITE, 
+                       (center[0] - size//4, center[1] - size//12, size//2, size//3),
+                       3.14, 0, 3)
+    
+    def _render_square(self, surface: pygame.Surface, center: tuple[int, int],
+                      size: int, color: tuple[int, int, int]) -> None:
+        """Render square shape."""
+        rect = pygame.Rect(center[0] - size//2, center[1] - size//2, size, size)
+        pygame.draw.rect(surface, color, rect, border_radius=5)
+        pygame.draw.rect(surface, CHALK_WHITE, rect, 3, border_radius=5)
         
-        # Draw gear
-        self._render_gear(surface, center, size)
+        # Eyes
+        eye_y = center[1] - size // 6
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] - size//6, eye_y), size//12)
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] + size//6, eye_y), size//12)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] - size//6, eye_y), size//18)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] + size//6, eye_y), size//18)
+    
+    def _render_triangle(self, surface: pygame.Surface, center: tuple[int, int],
+                        size: int, color: tuple[int, int, int]) -> None:
+        """Render triangle shape."""
+        points = [
+            (center[0], center[1] - size//2),
+            (center[0] - size//2, center[1] + size//2),
+            (center[0] + size//2, center[1] + size//2)
+        ]
+        pygame.draw.polygon(surface, color, points)
+        pygame.draw.polygon(surface, CHALK_WHITE, points, 3)
+        
+        # Eyes
+        eye_y = center[1] - size // 8
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] - size//8, eye_y), size//12)
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] + size//8, eye_y), size//12)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] - size//8, eye_y), size//18)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] + size//8, eye_y), size//18)
+    
+    def _render_star(self, surface: pygame.Surface, center: tuple[int, int],
+                    size: int, color: tuple[int, int, int]) -> None:
+        """Render star shape."""
+        import math
+        points = []
+        for i in range(10):
+            angle = math.pi / 2 + (2 * math.pi * i / 10)
+            radius = (size // 2) if i % 2 == 0 else (size // 4)
+            px = center[0] + radius * math.cos(angle)
+            py = center[1] - radius * math.sin(angle)
+            points.append((px, py))
+        pygame.draw.polygon(surface, color, points)
+        pygame.draw.polygon(surface, CHALK_WHITE, points, 3)
+        
+        # Eyes (centered)
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] - size//8, center[1]), size//12)
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] + size//8, center[1]), size//12)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] - size//8, center[1]), size//18)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] + size//8, center[1]), size//18)
+    
+    def _render_hexagon(self, surface: pygame.Surface, center: tuple[int, int],
+                       size: int, color: tuple[int, int, int]) -> None:
+        """Render hexagon shape."""
+        import math
+        points = []
+        for i in range(6):
+            angle = math.pi / 3 * i
+            px = center[0] + (size // 2) * math.cos(angle)
+            py = center[1] + (size // 2) * math.sin(angle)
+            points.append((px, py))
+        pygame.draw.polygon(surface, color, points)
+        pygame.draw.polygon(surface, CHALK_WHITE, points, 3)
+        
+        # Eyes
+        eye_y = center[1] - size // 8
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] - size//8, eye_y), size//12)
+        pygame.draw.circle(surface, CHALK_WHITE, (center[0] + size//8, eye_y), size//12)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] - size//8, eye_y), size//18)
+        pygame.draw.circle(surface, (0, 0, 0), (center[0] + size//8, eye_y), size//18)
     
     def _render_gear(self, surface: pygame.Surface, center: tuple[int, int], size: int) -> None:
         """Render equipped gear on character.
@@ -247,6 +335,8 @@ class Student:
             self._position = data["position"].copy()
         if "color" in data and data["color"] in self.COLOR_MAP:
             self._color = data["color"]
+        if "shape" in data:
+            self._shape = data["shape"]
         if "gear" in data:
             self._gear = data["gear"].copy()
         if "ready" in data:
