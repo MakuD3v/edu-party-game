@@ -72,7 +72,7 @@ class ProfileResponse(BaseModel):
 class ProfileUpdate(BaseModel):
     username: Optional[str] = None
     color: Optional[str] = None
-    gear: Optional[List[str]] = None
+    gear: Optional[list[str]] = None
 
 
 class LobbyCreate(BaseModel):
