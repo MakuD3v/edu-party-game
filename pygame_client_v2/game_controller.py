@@ -259,7 +259,7 @@ class GameController:
                 self._move_to_platform(2)
 
     def _render_menu(self) -> None:
-        self._screen.fill(CHALKBOARD_DARK)
+        self._screen.fill(MAYHEM_PURPLE)
         # Title
         font_title = pygame.font.Font(None, 72)
         title = font_title.render("EDU-PARTY", True, SCHOOL_BUS_YELLOW)

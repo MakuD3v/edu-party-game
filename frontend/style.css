@@ -1,6 +1,6 @@
 /* ============================================================================
    EDU PARTY - Educational Mayhem Web Theme
-   Matches Pygame Client V2 Aesthetic
+   Matches Reference Image (Purple/Yellow/Orange)
    ============================================================================ */
 
 /* Global Reset & Base Styles */
@@ -12,21 +12,26 @@
 }
 
 :root {
-    /* Educational Mayhem Palette */
-    --bg-purple: #643296;
-    /* Base Background */
-    --panel-purple: #50328C;
-    /* Main Panel */
-    --box-dark: #281450;
-    /* Inner Boxes */
+    /* Palette extracted from Reference */
+    --bg-purple: #351C60;
+    /* Deep intro background */
+    --panel-purple: #46257C;
+    /* Main card background */
+    --box-dark: #2A164B;
+    /* Darker stats/list boxes */
 
-    --school-bus-yellow: #FFD700;
+    --school-bus-yellow: #FFD200;
+    /* Bright Title Yellow */
     --chalk-white: #FFFFFF;
 
     --btn-orange: #FF7800;
-    --btn-purple: #9632C8;
-    --btn-green: #2ECC71;
+    /* Create Lobby */
+    --btn-purple: #8E44AD;
+    /* Refresh/Edit */
     --btn-red: #E74C3C;
+    /* Logout */
+    --btn-green: #2ECC71;
+    /* Join */
 
     --text-shadow-color: #000000;
 
@@ -37,15 +42,15 @@
     --spacing-lg: 24px;
 
     /* Border */
-    --border-radius: 15px;
-    --border-radius-sm: 8px;
+    --border-radius: 20px;
+    --border-radius-sm: 12px;
 }
 
 body {
     font-family: 'Luckiest Guy', 'Impact', cursive;
     background-color: var(--bg-purple);
-    /* Simple pattern or gradient if desired */
-    background-image: radial-gradient(circle at 50% 50%, #764BA2 0%, #643296 100%);
+    /* Subtle radial gradient */
+    background-image: radial-gradient(circle at center, #422375 0%, #351C60 100%);
     color: var(--chalk-white);
     min-height: 100vh;
     display: flex;
@@ -53,15 +58,17 @@ body {
     align-items: center;
     font-size: 16px;
     overflow-x: hidden;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
 }
 
-/* Container */
+/* Container - Mobile First */
 .container {
     width: 100%;
-    max-width: 600px;
+    max-width: 650px;
+    /* Slightly wider for stats row */
     position: relative;
     text-align: center;
+    margin: 0 auto;
 }
 
 /* Logo */
@@ -70,16 +77,18 @@ body {
 }
 
 .logo-text {
-    font-size: clamp(40px, 10vw, 72px);
+    font-size: clamp(48px, 12vw, 80px);
     color: var(--school-bus-yellow);
-    text-shadow: 4px 4px 0 var(--text-shadow-color);
+    text-shadow: 4px 6px 0 var(--text-shadow-color);
     margin-bottom: 5px;
+    letter-spacing: 2px;
 }
 
 .subtitle {
-    font-size: clamp(16px, 4vw, 24px);
+    font-size: clamp(18px, 5vw, 24px);
     color: var(--chalk-white);
-    letter-spacing: 1px;
+    letter-spacing: 3px;
+    text-shadow: 2px 2px 0 var(--text-shadow-color);
     text-transform: uppercase;
 }
 
@@ -98,7 +107,8 @@ body {
     background-color: var(--panel-purple);
     border-radius: var(--border-radius);
     padding: var(--spacing-lg);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 0 rgba(0, 0, 0, 0.3);
+    /* Chunky shadow */
     margin-bottom: var(--spacing-md);
     position: relative;
 }
@@ -112,7 +122,7 @@ body {
 .card-title {
     font-size: 32px;
     color: var(--school-bus-yellow);
-    text-shadow: 2px 2px 0 var(--text-shadow-color);
+    text-shadow: 3px 3px 0 var(--text-shadow-color);
     margin-bottom: var(--spacing-lg);
     text-transform: uppercase;
 }
@@ -120,40 +130,46 @@ body {
 /* Input Fields */
 .input-field {
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     margin-bottom: var(--spacing-md);
     font-size: 18px;
     font-family: 'Arial', sans-serif;
     border: none;
     border-radius: var(--border-radius-sm);
-    background: #FFFFFF;
+    background: #FFF;
     color: #333;
     outline: none;
+    border-bottom: 4px solid #CCC;
 }
 
 .input-field:focus {
-    box-shadow: 0 0 0 4px var(--school-bus-yellow);
+    border-bottom-color: var(--school-bus-yellow);
 }
 
 /* Buttons */
 .btn {
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     margin-bottom: var(--spacing-md);
     font-family: 'Luckiest Guy', cursive;
-    font-size: 20px;
+    font-size: 22px;
     border: none;
     border-radius: var(--border-radius);
     cursor: pointer;
     text-transform: uppercase;
     color: white;
-    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s, filter 0.1s;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3);
+    /* Chunky shadow matching style */
+    transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
 }
 
 .btn:hover {
@@ -164,24 +180,29 @@ body {
     background-color: var(--btn-orange);
 }
 
+/* Create Lobby */
 .btn-secondary {
     background-color: var(--btn-purple);
 }
 
+/* Refresh */
 .btn-green {
     background-color: var(--btn-green);
 }
 
-/* Join btn */
+/* Join */
 .btn-red {
     background-color: var(--btn-red);
 }
 
+/* Logout */
+
 .btn-small {
     width: auto;
-    padding: 8px 16px;
-    font-size: 14px;
-    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+    margin-bottom: 0;
 }
 
 /* Profile Header (Welcome Panel) */
@@ -190,38 +211,51 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .welcome-text {
-    font-size: 24px;
+    font-size: clamp(20px, 5vw, 28px);
     color: var(--school-bus-yellow);
+    text-shadow: 2px 2px 0 var(--text-shadow-color);
+    text-align: left;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
 }
 
 /* Stats Row */
 .stats-container {
     display: flex;
-    gap: var(--spacing-sm);
+    gap: 15px;
     margin-bottom: var(--spacing-lg);
+    flex-wrap: nowrap;
+    /* Keep on one row if possible, scroll or wrap on very small */
 }
 
 .stat-item {
     background-color: var(--box-dark);
     border-radius: var(--border-radius);
-    padding: 15px;
+    padding: 15px 10px;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 .stat-label {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--school-bus-yellow);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
 }
 
 .stat-value {
-    font-size: 24px;
+    font-size: 28px;
     color: white;
 }
 
@@ -229,25 +263,32 @@ body {
 .lobbies-list {
     background-color: var(--box-dark);
     border-radius: var(--border-radius);
-    padding: var(--spacing-md);
-    min-height: 200px;
+    padding: 20px;
+    min-height: 250px;
+    box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .section-title {
     color: var(--school-bus-yellow);
     margin-bottom: var(--spacing-md);
-    font-size: 18px;
+    font-size: 20px;
+    text-shadow: 2px 2px 0 var(--text-shadow-color);
 }
 
 .lobby-item {
     background-color: #4A3080;
-    /* Slightly lighter than box dark */
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin-bottom: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 2px solid transparent;
+    /* Placeholder for hover border */
+}
+
+.lobby-item:hover {
+    background-color: #553A90;
 }
 
 .lobby-info {
@@ -255,23 +296,32 @@ body {
 }
 
 .lobby-id {
-    font-size: 16px;
+    font-size: 18px;
     color: white;
+    margin-bottom: 2px;
 }
 
 .lobby-players {
-    font-size: 12px;
-    color: #CCC;
+    font-size: 14px;
+    color: #BBB;
+    font-family: 'Arial', sans-serif;
 }
 
 .join-btn {
     background-color: var(--btn-green);
     border: none;
-    padding: 5px 15px;
-    border-radius: 5px;
+    padding: 8px 24px;
+    border-radius: 8px;
     color: white;
     font-family: inherit;
+    font-size: 18px;
     cursor: pointer;
+    box-shadow: 0 4px 0 #219150;
+}
+
+.join-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #219150;
 }
 
 /* Profile Modal (Overlay) */
@@ -281,11 +331,13 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
+    /* Darker backdrop */
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    padding: 20px;
 }
 
 .modal-overlay.active {
@@ -296,37 +348,46 @@ body {
     background-color: var(--panel-purple);
     padding: 30px;
     border-radius: 20px;
-    width: 90%;
-    max-width: 400px;
+    width: 100%;
+    max-width: 450px;
     text-align: center;
-    border: 2px solid var(--school-bus-yellow);
+    border: 4px solid var(--box-dark);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
 .shape-selector,
 .color-selector {
     display: flex;
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: 20px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
 }
 
 .selector-option {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 4px solid rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 24px;
+    transition: transform 0.2s;
+}
+
+.selector-option:hover {
+    transform: scale(1.1);
 }
 
 .selector-option.selected {
     border-color: var(--school-bus-yellow);
-    transform: scale(1.1);
+    transform: scale(1.2);
+    box-shadow: 0 0 15px var(--school-bus-yellow);
 }
 
-/* Colors for selection */
+/* Colors */
 .bg-red {
     background-color: #E74C3C;
 }
@@ -337,6 +398,11 @@ body {
 
 .bg-green {
     background-color: #2ECC71;
+}
+
+/* Utilities */
+.hidden {
+    display: none !important;
 }
 
 /* Animations */
@@ -352,7 +418,41 @@ body {
     }
 }
 
-/* Utilities */
-.hidden {
-    display: none !important;
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+    .logo-text {
+        font-size: 48px;
+    }
+
+    .card-title {
+        font-size: 26px;
+    }
+
+    .btn {
+        font-size: 18px;
+        padding: 14px;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-buttons {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+
+    .btn-small {
+        flex: 1;
+    }
+
+    .stats-container {
+        gap: 10px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
 }

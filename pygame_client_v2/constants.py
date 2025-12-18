@@ -3,11 +3,11 @@ Educational Mayhem Constants and Configuration
 Updated with profile system colors and shape database.
 """
 
-# Educational Mayhem Color Scheme
-MAYHEM_PURPLE = (102, 51, 153)       # #663399 - Primary background
-CHALKBOARD_DARK = (44, 62, 80)        # #2C3E50 - Secondary background  
+# Educational Mayhem Color Scheme (Synced with Web Client)
+MAYHEM_PURPLE = (53, 28, 96)          # #351C60 - Deep intro background
+CHALKBOARD_DARK = (42, 22, 75)        # #2A164B - Darker boxes
 CHALK_WHITE = (236, 240, 241)         # #ECF0F1 - Text/UI
-SCHOOL_BUS_YELLOW = (241, 196, 15)    # #F1C40F - Primary buttons/accent
+SCHOOL_BUS_YELLOW = (255, 210, 0)     # #FFD200 - Bright Title Yellow
 ERASER_PINK = (255, 192, 203)         # Accent color
 
 # Character Colors
