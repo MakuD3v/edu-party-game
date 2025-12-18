@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 from dataclasses import dataclass, field
 from fastapi import WebSocket
+from typing import Optional
 
 
 @dataclass
