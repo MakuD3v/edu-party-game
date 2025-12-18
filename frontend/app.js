@@ -1,22 +1,27 @@
 /**
  * EDU PARTY - Frontend JavaScript
- * Handles authentication, lobby management, and game launching
+ * Handles authentication, lobby management, and profile customization
  */
 
 // API Configuration
 const API_BASE = window.location.origin;
-const GODOT_GAME_URL = `${API_BASE}/game/index.html`; // Update with actual Godot web export path
+const GODOT_GAME_URL = `${API_BASE}/game/index.html`;
 
 // State Management
 let currentToken = localStorage.getItem('token') || null;
 let currentUsername = localStorage.getItem('username') || null;
 let currentLobbyId = null;
 
+// Profile State
+let selectedColor = 'red';
+let selectedShape = 'circle';
+
 // DOM Elements
 const loginScreen = document.getElementById('loginScreen');
 const registerScreen = document.getElementById('registerScreen');
 const lobbyScreen = document.getElementById('lobbyScreen');
 const gameLaunchScreen = document.getElementById('gameLaunchScreen');
+const profileModal = document.getElementById('profileModal');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const errorMessage = document.getElementById('errorMessage');
 
@@ -29,20 +34,18 @@ function showScreen(screenElement) {
     screenElement.classList.add('active');
 }
 
-function showLoading() {
-    loadingOverlay.classList.add('active');
-}
-
-function hideLoading() {
-    loadingOverlay.classList.remove('active');
-}
+function showLoading() { loadingOverlay.classList.add('active'); }
+function hideLoading() { loadingOverlay.classList.remove('active'); }
 
 function showError(message) {
     errorMessage.textContent = message;
     errorMessage.classList.add('active');
-    setTimeout(() => {
-        errorMessage.classList.remove('active');
-    }, 3000);
+    setTimeout(() => { errorMessage.classList.remove('active'); }, 3000);
+}
+
+function toggleProfileModal(show) {
+    if (show) profileModal.classList.add('active');
+    else profileModal.classList.remove('active');
 }
 
 // ============================================================================
@@ -56,18 +59,13 @@ async function apiCall(endpoint, method = 'GET', body = null) {
             'Content-Type': 'application/json'
         }
     };
-    
-    if (body) {
-        options.body = JSON.stringify(body);
-    }
-    
+    if (body) options.body = JSON.stringify(body);
+
     const response = await fetch(`${API_BASE}${endpoint}`, options);
-    
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || 'Request failed');
     }
-    
     return await response.json();
 }
 
@@ -79,36 +77,27 @@ async function register(username, password) {
     showLoading();
     try {
         const data = await apiCall('/api/register', 'POST', { username, password });
-        currentToken = data.access_token;
-        currentUsername = data.username;
-        localStorage.setItem('token', currentToken);
-        localStorage.setItem('username', currentUsername);
-        
-        await loadProfile();
-        showScreen(lobbyScreen);
-    } catch (error) {
-        showError(error.message);
-    } finally {
-        hideLoading();
-    }
+        handleAuthSuccess(data);
+    } catch (error) { showError(error.message); }
+    finally { hideLoading(); }
 }
 
 async function login(username, password) {
     showLoading();
     try {
         const data = await apiCall('/api/login', 'POST', { username, password });
-        currentToken = data.access_token;
-        currentUsername = data.username;
-        localStorage.setItem('token', currentToken);
-        localStorage.setItem('username', currentUsername);
-        
-        await loadProfile();
-        showScreen(lobbyScreen);
-    } catch (error) {
-        showError(error.message);
-    } finally {
-        hideLoading();
-    }
+        handleAuthSuccess(data);
+    } catch (error) { showError(error.message); }
+    finally { hideLoading(); }
+}
+
+function handleAuthSuccess(data) {
+    currentToken = data.access_token;
+    currentUsername = data.username;
+    localStorage.setItem('token', currentToken);
+    localStorage.setItem('username', currentUsername);
+    loadProfile();
+    showScreen(lobbyScreen);
 }
 
 function logout() {
@@ -126,17 +115,59 @@ function logout() {
 async function loadProfile() {
     try {
         const data = await apiCall(`/api/profile?token=${currentToken}`);
-        
+
         document.getElementById('welcomeText').textContent = `WELCOME ${data.username.toUpperCase()}!`;
         document.getElementById('winsValue').textContent = data.wins;
         document.getElementById('lossesValue').textContent = data.losses;
         document.getElementById('eloValue').textContent = Math.floor(data.elo_rating);
-        
-        await loadLobbies();
+
+        // Init profile selection
+        selectedColor = data.color || 'red';
+        selectedShape = data.shape || 'circle';
+        highlightSelection(); // Visual update
+
+        loadLobbies();
     } catch (error) {
-        showError('Failed to load profile');
+        console.error(error);
         logout();
     }
+}
+
+async function saveProfile() {
+    showLoading();
+    try {
+        await apiCall(`/api/profile/update?token=${currentToken}`, 'POST', {
+            username: currentUsername, // Keep same username
+            color: selectedColor,
+            shape: selectedShape
+        });
+        toggleProfileModal(false);
+        showError("Profile Saved!"); // Reusing error box for success msg temporarily
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Profile UI Selection Logic
+window.selectColor = (color) => {
+    selectedColor = color;
+    highlightSelection();
+}
+
+window.selectShape = (shape) => {
+    selectedShape = shape;
+    highlightSelection();
+}
+
+function highlightSelection() {
+    // Colors
+    document.querySelectorAll('.color-selector .selector-option').forEach(el => {
+        el.classList.remove('selected');
+        if (el.dataset.color === selectedColor) el.classList.add('selected');
+    });
+    // Shapes handles visually? For now just log, implementation of shape visual selector in HTML was simplified text
 }
 
 // ============================================================================
@@ -148,7 +179,6 @@ async function createLobby() {
     try {
         const data = await apiCall(`/api/lobby/create?token=${currentToken}`, 'POST');
         currentLobbyId = data.lobby_id;
-        
         document.getElementById('lobbyIdDisplay').textContent = currentLobbyId;
         showScreen(gameLaunchScreen);
     } catch (error) {
@@ -162,19 +192,19 @@ async function loadLobbies() {
     try {
         const data = await apiCall('/api/lobby/list');
         const container = document.getElementById('lobbiesContainer');
-        
+
         if (data.lobbies.length === 0) {
-            container.innerHTML = '<p class="empty-message">No active lobbies. Create one!</p>';
+            container.innerHTML = '<p class="empty-message">No active classes found. Create one!</p>';
             return;
         }
-        
+
         container.innerHTML = data.lobbies.map(lobby => `
             <div class="lobby-item" onclick="joinLobby('${lobby.id}')">
                 <div class="lobby-info">
-                    <div class="lobby-id">Lobby: ${lobby.id}</div>
-                    <div class="lobby-players">Players: ${lobby.player_count}/${lobby.max_players}</div>
+                    <div class="lobby-id">CLASS: ${lobby.id}</div>
+                    <div class="lobby-players">Students: ${lobby.player_count}/${lobby.max_players}</div>
                 </div>
-                <button class="lobby-join-btn" onclick="event.stopPropagation(); joinLobby('${lobby.id}')">
+                <button class="join-btn" onclick="event.stopPropagation(); joinLobby('${lobby.id}')">
                     JOIN
                 </button>
             </div>
@@ -184,90 +214,61 @@ async function loadLobbies() {
     }
 }
 
-function joinLobby(lobbyId) {
+window.joinLobby = (lobbyId) => {
     currentLobbyId = lobbyId;
     document.getElementById('lobbyIdDisplay').textContent = currentLobbyId;
     showScreen(gameLaunchScreen);
 }
 
-// ============================================================================
-// Game Launch
-// ============================================================================
-
 function launchGame() {
-    if (!currentToken || !currentLobbyId) {
-        showError('Missing token or lobby ID');
-        return;
-    }
-    
-    // Construct Godot game URL with parameters
+    if (!currentToken || !currentLobbyId) return;
     const gameUrl = `${GODOT_GAME_URL}?lobby_id=${currentLobbyId}&token=${currentToken}`;
-    
-    // Open game in new tab (or same tab depending on preference)
     window.location.href = gameUrl;
-    // Alternative: window.open(gameUrl, '_blank');
 }
 
 // ============================================================================
 // Event Listeners
 // ============================================================================
 
-// Login Form
 document.getElementById('loginForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    login(username, password);
+    login(document.getElementById('loginUsername').value, document.getElementById('loginPassword').value);
 });
 
-// Register Form
 document.getElementById('registerForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const username = document.getElementById('registerUsername').value;
-    const password = document.getElementById('registerPassword').value;
-    register(username, password);
+    register(document.getElementById('registerUsername').value, document.getElementById('registerPassword').value);
 });
 
-// Screen Switching
-document.getElementById('showRegister').addEventListener('click', () => {
-    showScreen(registerScreen);
-});
-
-document.getElementById('showLogin').addEventListener('click', () => {
-    showScreen(loginScreen);
-});
-
-// Logout
+document.getElementById('showRegister').addEventListener('click', () => showScreen(registerScreen));
+document.getElementById('showLogin').addEventListener('click', () => showScreen(loginScreen));
 document.getElementById('logoutBtn').addEventListener('click', logout);
 
-// Lobby Actions
 document.getElementById('createLobbyBtn').addEventListener('click', createLobby);
 document.getElementById('refreshLobbiesBtn').addEventListener('click', loadLobbies);
 
-// Game Launch
+document.getElementById('editProfileBtn').addEventListener('click', () => toggleProfileModal(true));
+document.getElementById('closeProfileBtn').addEventListener('click', () => toggleProfileModal(false));
+document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+
 document.getElementById('playGameBtn').addEventListener('click', launchGame);
 document.getElementById('backToLobbyBtn').addEventListener('click', () => {
     showScreen(lobbyScreen);
     loadLobbies();
 });
 
-// ============================================================================
 // Initialization
-// ============================================================================
-
 window.addEventListener('DOMContentLoaded', () => {
-    // Check if user is already logged in
     if (currentToken && currentUsername) {
         loadProfile();
         showScreen(lobbyScreen);
     } else {
         showScreen(loginScreen);
     }
-    
-    // Auto-refresh lobbies every 5 seconds when on lobby screen
+
+    // Auto-refresh lobbies
     setInterval(() => {
-        if (lobbyScreen.classList.contains('active')) {
-            loadLobbies();
-        }
+        if (lobbyScreen.classList.contains('active')) loadLobbies();
     }, 5000);
 });
+

@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EDU Party - Fall Guys Style Game</title>
+    <title>EDU Party - Educational Mayhem</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
 </head>
+
 <body>
-    <!-- Main Container -->
     <div class="container">
-        <!-- Logo/Title -->
+        <!-- Logo -->
         <div class="game-logo">
             <h1 class="logo-text">EDU PARTY</h1>
-            <p class="subtitle">FALL GUYS MAYHEM!</p>
+            <p class="subtitle">EDUCATIONAL MAYHEM!</p>
         </div>
 
         <!-- Login Screen -->
@@ -27,7 +28,7 @@
                     <input type="password" id="loginPassword" placeholder="Password" class="input-field" required>
                     <button type="submit" class="btn btn-primary">LOGIN</button>
                 </form>
-                <p class="switch-text">Don't have an account? <span id="showRegister" class="link">Register</span></p>
+                <p class="switch-text">New Student? <span id="showRegister" class="link">Register Here</span></p>
             </div>
         </div>
 
@@ -40,18 +41,23 @@
                     <input type="password" id="registerPassword" placeholder="Password" class="input-field" required>
                     <button type="submit" class="btn btn-primary">REGISTER</button>
                 </form>
-                <p class="switch-text">Already have an account? <span id="showLogin" class="link">Login</span></p>
+                <p class="switch-text">Have an account? <span id="showLogin" class="link">Login</span></p>
             </div>
         </div>
 
         <!-- Lobby Screen -->
         <div id="lobbyScreen" class="screen">
             <div class="card">
+                <!-- Profile Header -->
                 <div class="profile-header">
-                    <h2 class="card-title" id="welcomeText">WELCOME!</h2>
-                    <button id="logoutBtn" class="btn btn-small">Logout</button>
+                    <h2 class="welcome-text" id="welcomeText">WELCOME STUDENT!</h2>
+                    <div>
+                        <button id="editProfileBtn" class="btn btn-small btn-secondary">EDIT PROFILE</button>
+                        <button id="logoutBtn" class="btn btn-small btn-red">LOGOUT</button>
+                    </div>
                 </div>
-                
+
+                <!-- Stats -->
                 <div class="stats-container">
                     <div class="stat-item">
                         <span class="stat-label">WINS</span>
@@ -67,28 +73,55 @@
                     </div>
                 </div>
 
+                <!-- Main Actions -->
                 <div class="lobby-actions">
                     <button id="createLobbyBtn" class="btn btn-primary">CREATE LOBBY</button>
                     <button id="refreshLobbiesBtn" class="btn btn-secondary">REFRESH LOBBIES</button>
                 </div>
 
+                <!-- Lobby List -->
                 <div class="lobbies-list" id="lobbiesList">
                     <h3 class="section-title">ACTIVE LOBBIES</h3>
                     <div id="lobbiesContainer">
-                        <p class="empty-message">No active lobbies. Create one!</p>
+                        <p class="empty-message">Searching for classes...</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Game Launch Screen (when lobby created) -->
+        <!-- Game Launch Screen -->
         <div id="gameLaunchScreen" class="screen">
             <div class="card centered-card">
-                <h2 class="card-title">LOBBY CREATED!</h2>
-                <p class="lobby-code-text">Lobby ID: <span id="lobbyIdDisplay" class="highlight">XXXX</span></p>
-                <p class="info-text">Share this code with your friends!</p>
-                <button id="playGameBtn" class="btn btn-huge btn-primary">🎮 PLAY NOW!</button>
-                <button id="backToLobbyBtn" class="btn btn-secondary">BACK</button>
+                <h2 class="card-title">CLASS IN SESSION!</h2>
+                <p class="lobby-code-text">Class ID: <span id="lobbyIdDisplay" class="highlight">????</span></p>
+                <p class="info-text">Waiting for others to join...</p>
+                <button id="playGameBtn" class="btn btn-primary">ENTER CLASSROOM</button>
+                <button id="backToLobbyBtn" class="btn btn-secondary">LEAVE</button>
+            </div>
+        </div>
+
+        <!-- Profile Modal -->
+        <div id="profileModal" class="modal-overlay">
+            <div class="modal-content">
+                <h2 class="card-title">CUSTOMIZE</h2>
+
+                <p class="stat-label" style="text-align:center; font-size:16px;">CHOOSE COLOR</p>
+                <div class="color-selector">
+                    <div class="selector-option bg-red" data-color="red" onclick="selectColor('red')"></div>
+                    <div class="selector-option bg-blue" data-color="blue" onclick="selectColor('blue')"></div>
+                    <div class="selector-option bg-green" data-color="green" onclick="selectColor('green')"></div>
+                </div>
+
+                <p class="stat-label" style="text-align:center; font-size:16px;">CHOOSE SHAPE</p>
+                <div class="shape-selector">
+                    <!-- Simple text or icons for shapes -->
+                    <div class="selector-option" onclick="selectShape('circle')">🔴</div>
+                    <div class="selector-option" onclick="selectShape('square')">⬛</div>
+                    <div class="selector-option" onclick="selectShape('triangle')">🔺</div>
+                </div>
+
+                <button id="saveProfileBtn" class="btn btn-primary" style="margin-top:20px;">SAVE CHANGES</button>
+                <button id="closeProfileBtn" class="btn btn-secondary">CANCEL</button>
             </div>
         </div>
 
@@ -104,4 +137,5 @@
 
     <script src="/static/app.js"></script>
 </body>
+
 </html>
