@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-from typing import Optional
+from typing import list, Optional
 import uuid
 import os
 
