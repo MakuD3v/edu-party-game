@@ -70,94 +70,62 @@ class Lobby:
     
     def remove_player(self, player_id: str) -> Player | None:
         """Remove and return a player from the lobby."""
-        return self.players.pop(player_id, None)
-    
+
+    def remove_player(self, player_id: str) -> None:
+        """Remove a player from the lobby."""
+        if player_id in self.players:
+            del self.players[player_id]
+
     def get_player(self, player_id: str) -> Player | None:
-        """Get a player by ID."""
         return self.players.get(player_id)
-    
-    def is_full(self) -> bool:
-        """Check if lobby is at max capacity."""
-        return len(self.players) >= self.MAX_PLAYERS
-    
-    def is_empty(self) -> bool:
-        """Check if lobby has no players."""
-        return len(self.players) == 0
-    
-    async def broadcast_async(self, message: dict, exclude_player_id: str | None = None):
-        """
-        Broadcast a message to all players in the lobby asynchronously.
-        Optionally exclude a specific player (useful for echoing back sender's data).
-        """
-        tasks = []
-        for player_id, player in self.players.items():
-            if exclude_player_id and player_id == exclude_player_id:
+
+    async def broadcast(self, message: dict, exclude_id: str | None = None) -> None:
+        """Send a formatted JSON message to all connected players."""
+        # Using list(values) to avoid runtime errors if dict changes during iteration
+        for player in list(self.players.values()):
+            if player.id == exclude_id or player.websocket is None:
                 continue
-            
-            # Create async task for each send
-            tasks.append(self._send_to_player(player.websocket, message))
-        
-        # Execute all sends concurrently
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-    
-    @staticmethod
-    async def _send_to_player(websocket: WebSocket, message: dict):
-        """Helper to send message to a single player."""
-        try:
-            await websocket.send_json(message)
-        except Exception as e:
-            # Log error but don't crash (player might have disconnected)
-            print(f"Error sending to player: {e}")
-    
-    def get_lobby_info(self) -> dict:
-        """Get lobby information for display."""
+            try:
+                await player.websocket.send_json(message)
+            except Exception as e:
+                print(f"Error broadcasting to {player.username}: {e}")
+                # Ideally, we might handle disconnection here
+                pass
+
+    def to_summary(self) -> dict:
+        """Return a lightweight summary for the lobby list."""
         return {
             "id": self.id,
             "host_id": self.host_id,
             "player_count": len(self.players),
-            "max_players": self.MAX_PLAYERS,
-            "status": self.status,
-            "created_at": self.created_at.isoformat()
+            "max_players": self.max_players,
+            "status": "In Game" if self.is_game_started else "Waiting"
         }
 
-
 class LobbyManager:
-    """Global manager for all lobbies."""
+    """
+    Singleton-style manager for handling all active lobbies.
+    """
+    _instance = None
     
-    def __init__(self):
-        self.lobbies: dict[str, Lobby] = {}
-        self.player_to_lobby: dict[str, str] = {}  # player_id -> lobby_id mapping
-    
-    def create_lobby(self, host_id: str) -> Lobby:
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(LobbyManager, cls).__new__(cls)
+            cls._instance.lobbies = {} # type: dict[str, Lobby]
+            cls._instance.active_connections = {} # type: dict[str, Player] (Global lookup)
+        return cls._instance
+
+    def create_lobby(self, host_player: Player, capacity: int) -> Lobby:
         """Create a new lobby and return it."""
-        lobby_id = str(uuid.uuid4())[:8]  # Short lobby ID
-        lobby = Lobby(lobby_id, host_id)
-        self.lobbies[lobby_id] = lobby
-        return lobby
-    
+        # Generate a short 6-char ID for easier typing
+        lobby_id = str(uuid.uuid4())[:6].upper()
+        new_lobby = Lobby(lobby_id, host_player.id, capacity)
+        self.lobbies[lobby_id] = new_lobby
+        return new_lobby
+
     def get_lobby(self, lobby_id: str) -> Lobby | None:
-        """Get a lobby by ID."""
         return self.lobbies.get(lobby_id)
     
-    def join_lobby(self, lobby_id: str, player: Player) -> bool:
-        """Join a player to a specific lobby."""
-        lobby = self.get_lobby(lobby_id)
-        if not lobby:
-            return False
-        
-        if lobby.add_player(player):
-            self.player_to_lobby[player.id] = lobby_id
-            return True
-        return False
-    
-    def leave_lobby(self, player_id: str) -> Lobby | None:
-        """Remove player from their current lobby. Returns the lobby (or None)."""
-        lobby_id = self.player_to_lobby.pop(player_id, None)
-        if not lobby_id:
-            return None
-        
-        lobby = self.get_lobby(lobby_id)
         if lobby:
             lobby.remove_player(player_id)
             

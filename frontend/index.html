@@ -3,139 +3,112 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EDU Party - Educational Mayhem</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDU PARTY: Educational Mayhem</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Coming+Soon&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container">
-        <!-- Logo -->
-        <div class="game-logo">
-            <h1 class="logo-text">EDU PARTY</h1>
-            <p class="subtitle">EDUCATIONAL MAYHEM!</p>
-        </div>
 
-        <!-- Login Screen -->
-        <div id="loginScreen" class="screen active">
-            <div class="card">
-                <h2 class="card-title">LOGIN</h2>
-                <form id="loginForm">
-                    <input type="text" id="loginUsername" placeholder="Username" class="input-field" required>
-                    <input type="password" id="loginPassword" placeholder="Password" class="input-field" required>
-                    <button type="submit" class="btn btn-primary">LOGIN</button>
-                </form>
-                <p class="switch-text">New Student? <span id="showRegister" class="link">Register Here</span></p>
-            </div>
-        </div>
-
-        <!-- Register Screen -->
-        <div id="registerScreen" class="screen">
-            <div class="card">
-                <h2 class="card-title">REGISTER</h2>
-                <form id="registerForm">
-                    <input type="text" id="registerUsername" placeholder="Username" class="input-field" required>
-                    <input type="password" id="registerPassword" placeholder="Password" class="input-field" required>
-                    <button type="submit" class="btn btn-primary">REGISTER</button>
-                </form>
-                <p class="switch-text">Have an account? <span id="showLogin" class="link">Login</span></p>
-            </div>
-        </div>
-
-        <!-- Lobby Screen -->
-        <div id="lobbyScreen" class="screen">
-            <div class="card">
-                <!-- Profile Header -->
-                <div class="profile-header">
-                    <h2 class="welcome-text" id="welcomeText">WELCOME STUDENT!</h2>
-                    <div class="header-buttons">
-                        <button id="editProfileBtn" class="btn btn-small btn-secondary">EDIT PROFILE</button>
-                        <button id="logoutBtn" class="btn btn-small btn-red">LOGOUT</button>
-                    </div>
-                </div>
-
-                <!-- Stats -->
-                <div class="stats-container">
-                    <div class="stat-item">
-                        <span class="stat-label">WINS</span>
-                        <span class="stat-value" id="winsValue">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">LOSSES</span>
-                        <span class="stat-value" id="lossesValue">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">ELO</span>
-                        <span class="stat-value" id="eloValue">1000</span>
-                    </div>
-                </div>
-
-                <!-- Main Actions -->
-                <div class="lobby-actions">
-                    <button id="createLobbyBtn" class="btn btn-primary">CREATE LOBBY</button>
-                    <button id="refreshLobbiesBtn" class="btn btn-secondary">REFRESH LOBBIES</button>
-                </div>
-
-                <!-- Lobby List -->
-                <div class="lobbies-list" id="lobbiesList">
-                    <h3 class="section-title">ACTIVE LOBBIES</h3>
-                    <div id="lobbiesContainer">
-                        <p class="empty-message">Searching for classes...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Launch Screen -->
-        <div id="gameLaunchScreen" class="screen">
-            <div class="card centered-card">
-                <h2 class="card-title">CLASS IN SESSION!</h2>
-                <p class="lobby-code-text">Class ID: <span id="lobbyIdDisplay" class="highlight">????</span></p>
-                <p class="info-text">Waiting for others to join...</p>
-                <button id="playGameBtn" class="btn btn-primary">ENTER CLASSROOM</button>
-                <button id="backToLobbyBtn" class="btn btn-secondary">LEAVE</button>
-            </div>
-        </div>
-
-        <!-- Profile Modal -->
-        <div id="profileModal" class="modal-overlay">
-            <div class="modal-content">
-                <h2 class="card-title">CUSTOMIZE</h2>
-
-                <p class="stat-label" style="text-align:center; font-size:16px;">CHOOSE COLOR</p>
-                <div class="color-selector">
-                    <div class="selector-option bg-red" data-color="red" onclick="selectColor('red')"></div>
-                    <div class="selector-option bg-blue" data-color="blue" onclick="selectColor('blue')"></div>
-                    <div class="selector-option bg-green" data-color="green" onclick="selectColor('green')"></div>
-                </div>
-
-                <p class="stat-label" style="text-align:center; font-size:16px;">CHOOSE SHAPE</p>
-                <div class="shape-selector">
-                    <!-- Simple text or icons for shapes -->
-                    <div class="selector-option" onclick="selectShape('circle')">🔴</div>
-                    <div class="selector-option" onclick="selectShape('square')">⬛</div>
-                    <div class="selector-option" onclick="selectShape('triangle')">🔺</div>
-                </div>
-
-                <button id="saveProfileBtn" class="btn btn-primary" style="margin-top:20px;">SAVE CHANGES</button>
-                <button id="closeProfileBtn" class="btn btn-secondary">CANCEL</button>
-            </div>
-        </div>
-
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="loading-overlay">
-            <div class="spinner"></div>
-            <p class="loading-text">LOADING...</p>
-        </div>
-
-        <!-- Error Message -->
-        <div id="errorMessage" class="error-message"></div>
+    <!-- PERSISTENT UI -->
+    <div id="profile-badge" class="profile-badge hidden">
+        <div id="badge-icon" class="avatar-icon shape-circle" style="background-color: #E74C3C;"></div>
+        <span id="badge-username">Student</span>
     </div>
 
-    <script src="/static/app.js"></script>
+    <!-- SCREEN: AUTH -->
+    <div id="screen-auth" class="screen active">
+        <div class="panel chalkboard-inset">
+            <h1 style="color:var(--school-bus-yellow); font-size: 3rem;">EDU PARTY</h1>
+            <h3>Educational Mayhem Edition</h3>
+            <p>Please Sign In to Class</p>
+
+            <form id="auth-form">
+                <input type="text" id="auth-username" placeholder="Student Name" required>
+                <input type="password" id="auth-password" placeholder="Password" required>
+                <br><br>
+                <button type="submit" class="btn-primary">ENTER</button>
+            </form>
+            <p id="auth-error" style="color:var(--danger-pink)"></p>
+        </div>
+    </div>
+
+    <!-- SCREEN: HOME (Dashboard) -->
+    <div id="screen-home" class="screen">
+        <div class="panel">
+            <h1>CLASS DASHBOARD</h1>
+
+            <!-- Create Lobby Section -->
+            <div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:10px; margin-bottom:20px;">
+                <h2>Host a Sector</h2>
+                <div style="margin: 10px 0;">
+                    <label>Max Students: <span id="capacity-val">15</span></label>
+                    <input type="range" id="capacity-input" min="5" max="50" value="15">
+                </div>
+                <button id="btn-create" class="btn-primary" style="font-size:1rem;">CREATE NEW CLASS</button>
+            </div>
+
+            <!-- Join Lobby Section -->
+            <div class="chalkboard-inset">
+                <h2>Active Classes</h2>
+                <div id="lobby-list" class="lobby-list-container">
+                    <!-- Dynamic Rows -->
+                    <div style="padding:20px; color:#aaa;">Loading...</div>
+                </div>
+                <button id="btn-refresh">REFRESH</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN: LOBBY -->
+    <div id="screen-lobby" class="screen">
+        <div class="panel chalkboard-inset" style="max-width:800px;">
+            <h1>CLASSROOM <span id="lobby-title-id">#0000</span></h1>
+            <h3 id="lobby-host-name" style="color:#aaa;">Host: Unknown</h3>
+
+            <hr style="border-color: rgba(255,255,255,0.2);">
+
+            <div id="roster-grid" class="roster-grid">
+                <!-- Dynamic Player Cards -->
+            </div>
+        </div>
+        <br>
+        <button id="btn-leave" style="background:var(--danger-pink); color:white; padding:10px 20px;">LEAVE
+            CLASS</button>
+    </div>
+
+    <!-- MODAL: PROFILE -->
+    <div id="modal-profile" class="modal-overlay hidden">
+        <div class="panel">
+            <h2>STUDENT ID</h2>
+
+            <!-- Colors -->
+            <div class="color-grid">
+                <div class="color-dot" style="background:#E74C3C" data-color="#E74C3C"></div>
+                <div class="color-dot" style="background:#3498DB" data-color="#3498DB"></div>
+                <div class="color-dot" style="background:#2ECC71" data-color="#2ECC71"></div>
+                <div class="color-dot" style="background:#F1C40F" data-color="#F1C40F"></div>
+                <div class="color-dot" style="background:#9B59B6" data-color="#9B59B6"></div>
+            </div>
+
+            <!-- Shapes -->
+            <div style="margin: 20px;">
+                <label>Shape:</label>
+                <select id="profile-shape" style="padding:5px; font-size:1.2rem;">
+                    <option value="circle">Circle</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                </select>
+            </div>
+
+            <button id="btn-save-profile" class="btn-primary">SAVE ID</button>
+            <br><br>
+            <button id="btn-cancel-profile" style="background:none; color:#aaa; font-size:0.9rem;">Cancel</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 
 </html>

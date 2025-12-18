@@ -1,43 +1,50 @@
 """
-SQLAlchemy models for user authentication and player profiles.
+models.py
+Data Transfer Objects (DTOs) for the Educational Mayhem system.
+Uses Pydantic V2 and Python 3.13 typing features.
 """
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
-from sqlalchemy.orm import relationship
-from datetime import datetime
-from database import Base
+from pydantic import BaseModel, ConfigDict
+from enum import Enum
 
+# --- Enums for strict type safety ---
 
-class User(Base):
-    """User authentication model."""
-    __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationship
-    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    
-    def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}')>"
+class ShapeEnum(str, Enum):
+    CIRCLE = "circle"
+    SQUARE = "square"
+    TRIANGLE = "triangle"
 
+# --- Shared Models ---
 
-class Profile(Base):
-    """Player statistics and profile data."""
-    __tablename__ = "profiles"
+class PlayerState(BaseModel):
+    """Encapsulates the visible state of a player."""
+    id: str
+    username: str
+    color: str
+    shape: ShapeEnum
+    is_ready: bool = False
+    is_host: bool = False
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
-    
-    # Game statistics
-    wins = Column(Integer, default=0)
-    losses = Column(Integer, default=0)
-    total_games = Column(Integer, default=0)
-    elo_rating = Column(Float, default=1000.0)
-    
-    # Relationship
-    user = relationship("User", back_populates="profile")
-    
-    def __repr__(self):
-        return f"<Profile(user_id={self.user_id}, wins={self.wins}, losses={self.losses}, elo={self.elo_rating})>"
+    # Pydantic V2 Config
+    model_config = ConfigDict(from_attributes=True)
+
+class LobbySummary(BaseModel):
+    """Lightweight lobby info for the list view."""
+    id: str
+    host_name: str
+    player_count: int
+    max_players: int
+    is_full: bool
+
+# --- WebSocket / API Payloads ---
+
+class AuthResponse(BaseModel):
+    token: str
+    username: str
+    state: PlayerState
+
+class CreateLobbyRequest(BaseModel):
+    capacity: int
+
+class ProfileUpdateRequest(BaseModel):
+    color: str
+    shape: ShapeEnum
