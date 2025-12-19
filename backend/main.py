@@ -5,6 +5,7 @@ The Application Entry Point.
 Responsible for routing and HTTP/WebSocket separation.
 Uses the ConnectionManager Singleton for state application.
 """
+import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
