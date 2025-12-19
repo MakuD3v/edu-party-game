@@ -130,114 +130,121 @@
                     <div id="leaderboard-list"></div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- GAME 2 SCREEN: SPEED TYPING -->
-            <div id="screen-game2" class="screen hidden">
-                <h1 style="color:var(--school-bus-yellow);">⌨️ SPEED TYPING</h1>
-                <div class="timer-display" id="game2-timer">60</div>
+    <!-- GAME 2 SCREEN: SPEED TYPING -->
+    <div id="screen-game2" class="screen hidden">
+        <div class="panel" style="max-width:900px; width:95%;">
+            <h1 style="color:var(--school-bus-yellow);">⌨️ SPEED TYPING</h1>
+            <div class="timer-display" id="game2-timer">60</div>
 
-                <div class="chalkboard-inset"
-                    style="padding: 2rem; margin: 2rem 0; min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <div id="word-display"
-                        style="font-size: 3rem; font-family: 'Courier New', monospace; margin-bottom: 20px;">WAITING...
-                    </div>
-                    <div id="next-word-display" style="font-size: 1.5rem; color: #888;"></div>
+            <div class="chalkboard-inset"
+                style="padding: 2rem; margin: 2rem 0; min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div id="word-display"
+                    style="font-size: 3rem; font-family: 'Courier New', monospace; margin-bottom: 20px;">WAITING...
                 </div>
-
-                <input type="text" id="typing-input" class="input-field" placeholder="Type here..." autocomplete="off"
-                    style="font-size: 2rem; text-align: center; font-family: 'Courier New', monospace;">
-
-                <div class="stats-bar"
-                    style="display: flex; gap: 20px; justify-content: center; margin-top: 20px; font-size: 1.5rem;">
-                    <div>WPM: <span id="wpm-display" style="color:var(--school-bus-yellow);">0</span></div>
-                    <div>SCORE: <span id="score-display-g2" style="color:var(--school-bus-yellow);">0</span></div>
-                </div>
+                <div id="next-word-display" style="font-size: 1.5rem; color: #888;"></div>
             </div>
 
-            <!-- SCREEN: INTERMISSION -->
-            <div id="screen-intermission" class="screen">
-                <div class="panel" style="max-width:800px;">
-                    <h1>📊 ROUND RESULTS</h1>
+            <input type="text" id="typing-input" class="input-field" placeholder="Type here..." autocomplete="off"
+                style="font-size: 2rem; text-align: center; font-family: 'Courier New', monospace;">
 
-                    <div class="chalkboard-inset" style="margin:20px 0; padding:20px;">
-                        <h2 style="color:var(--school-bus-yellow);">✅ ADVANCING</h2>
-                        <div id="advancing-list" class="player-list"></div>
+            <div class="stats-bar"
+                style="display: flex; gap: 20px; justify-content: center; margin-top: 20px; font-size: 1.5rem;">
+                <div>WPM: <span id="wpm-display" style="color:var(--school-bus-yellow);">0</span></div>
+                <div>SCORE: <span id="score-display-g2" style="color:var(--school-bus-yellow);">0</span></div>
+            </div>
+        </div>
+    </div>
 
-                        <h2 style="color:var(--danger-pink);">❌ ELIMINATED</h2>
-                        <div id="eliminated-list" class="player-list"></div>
-                    </div>
+    <!-- SCREEN: INTERMISSION -->
+    <div id="screen-intermission" class="screen">
+        <div class="panel" style="max-width:800px;">
+            <h1>📊 ROUND RESULTS</h1>
 
-                    <div id="next-game-info" style="margin-top:20px; font-size:1.2rem; color:#aaa;">
-                        Next game: <span id="next-game-name">...</span>
-                    </div>
-                </div>
+            <div class="chalkboard-inset" style="margin:20px 0; padding:20px;">
+                <h2 style="color:var(--school-bus-yellow);">✅ ADVANCING</h2>
+                <div id="advancing-list" class="player-list"></div>
 
-                <!-- Controls Hint -->
-                <div style="text-align: center; margin-top: 10px; color: #888;">
-                    Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
-                </div>
-
-                <!-- Checkpoint Popup Overlay -->
-                <div id="checkpoint-popup" class="modal-overlay hidden"
-                    style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50;">
-                    <div class="panel" style="width: 400px; text-align: center;">
-                        <h2 style="color: var(--school-bus-yellow);">🔒 CHECKPOINT!</h2>
-                        <p id="checkpoint-q" style="font-size: 1.5rem; margin: 20px 0;">Question?</p>
-                        <input type="text" id="checkpoint-input" class="input-field" placeholder="Answer...">
-                        <button id="btn-submit-checkpoint" class="btn-primary" style="margin-top: 10px;">UNLOCK</button>
-                    </div>
-                </div>
+                <h2 style="color:var(--danger-pink);">❌ ELIMINATED</h2>
+                <div id="eliminated-list" class="player-list"></div>
             </div>
 
-            <!-- GAME 3 SCREEN: MAZE CHALLENGE -->
-            <div id="screen-game3" class="screen hidden" style="position: relative;">
-                <h1 style="color:var(--school-bus-yellow);">🧩 MAZE CHALLENGE</h1>
-                <!-- Maze Canvas Layer -->
-                <div
-                    style="position: relative; width: 100%; height: 60vh; background: #222; border-radius: 10px; overflow: hidden;">
-                    <canvas id="maze-canvas" style="width: 100%; height: 100%;"></canvas>
-                </div>
+            <div id="next-game-info" style="margin-top:20px; font-size:1.2rem; color:#aaa;">
+                Next game: <span id="next-game-name">...</span>
+            </div>
+        </div>
 
-                <!-- Controls Hint -->
-                <div style="text-align: center; margin-top: 10px; color: #888;">
-                    Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
-                </div>
+        <!-- Controls Hint -->
+        <div style="text-align: center; margin-top: 10px; color: #888;">
+            Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
+        </div>
+
+        <!-- Checkpoint Popup Overlay -->
+        <div id="checkpoint-popup" class="modal-overlay hidden"
+            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50;">
+            <div class="panel" style="width: 400px; text-align: center;">
+                <h2 style="color: var(--school-bus-yellow);">🔒 CHECKPOINT!</h2>
+                <p id="checkpoint-q" style="font-size: 1.5rem; margin: 20px 0;">Question?</p>
+                <input type="text" id="checkpoint-input" class="input-field" placeholder="Answer...">
+                <button id="btn-submit-checkpoint" class="btn-primary" style="margin-top: 10px;">UNLOCK</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- GAME 3 SCREEN: MAZE CHALLENGE -->
+    <div id="screen-game3" class="screen hidden" style="position: relative;">
+        <div class="panel" style="max-width:900px; width:95%;">
+            <h1 style="color:var(--school-bus-yellow);">🧩 MAZE CHALLENGE</h1>
+            <!-- Maze Canvas Layer -->
+            <div
+                style="position: relative; width: 100%; height: 60vh; background: #222; border-radius: 10px; overflow: hidden;">
+                <canvas id="maze-canvas" style="width: 100%; height: 100%;"></canvas>
             </div>
 
-            <!-- SCREEN: SPECTATOR -->
-            <div id="screen-spectator" class="screen">
-                <div class="panel" style="max-width:800px;">
-                    <h1>👁️ SPECTATOR MODE</h1>
-                    <p style="color:#aaa; font-size:1.2rem;">You've been eliminated, but you can watch the remaining
-                        players!
-                    </p>
+            <!-- Controls Hint -->
+            <div style="text-align: center; margin-top: 10px; color: #888;">
+                Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
+            </div>
+        </div>
+    </div>
 
-                    <div class="chalkboard-inset" style="margin:20px 0;">
-                        <h2>Current Game Progress</h2>
-                        <div id="spectator-leaderboard" class="leaderboard-container">
-                            <!-- Live leaderboard for spectators -->
-                        </div>
-                    </div>
+    <!-- SCREEN: SPECTATOR -->
+    <div id="screen-spectator" class="screen">
+        <div class="panel" style="max-width:800px;">
+            <h1>👁️ SPECTATOR MODE</h1>
+            <p style="color:#aaa; font-size:1.2rem;">You've been eliminated, but you can watch the remaining
+                players!
+            </p>
+
+            <div class="chalkboard-inset" style="margin:20px 0;">
+                <h2>Current Game Progress</h2>
+                <div id="spectator-leaderboard" class="leaderboard-container">
+                    <!-- Live leaderboard for spectators -->
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- TUTORIAL MODAL -->
-            <div id="tutorial-modal" class="modal-overlay hidden">
-                <div class="panel tutorial-panel" style="max-width:600px; text-align:center;">
-                    <h1 id="tutorial-title" style="color:var(--school-bus-yellow);">📚 GAME TUTORIAL</h1>
-                    <div class="chalkboard-inset" style="padding:30px; margin:20px 0;">
-                        <div id="tutorial-content" style="font-size:1.2rem; line-height:1.8;">
-                            <!-- Dynamic tutorial content -->
-                        </div>
-                    </div>
-                    <p style="color:#aaa; font-size:0.9rem;">Game starts in <span id="tutorial-countdown">5</span>
-                        seconds...
-                    </p>
+    <!-- TUTORIAL MODAL -->
+    <div id="tutorial-modal" class="modal-overlay hidden">
+        <div class="panel tutorial-panel" style="max-width:600px; text-align:center;">
+            <h1 id="tutorial-title" style="color:var(--school-bus-yellow);">📚 GAME TUTORIAL</h1>
+            <div class="chalkboard-inset" style="padding:30px; margin:20px 0;">
+                <div id="tutorial-content" style="font-size:1.2rem; line-height:1.8;">
+                    <!-- Dynamic tutorial content -->
                 </div>
             </div>
+            <p style="color:#aaa; font-size:0.9rem;">Game starts in <span id="tutorial-countdown">5</span>
+                seconds...
+            </p>
+        </div>
+    </div>
 
-            <!-- GAME PREVIEW OVERLAY (EDU PARTY Educational Mayhem) -->
-            <div id="game-preview-overlay" class="hidden" style="
+    <!-- GAME PREVIEW OVERLAY (EDU PARTY Educational Mayhem) -->
+    <div id="game-preview-overlay" class="hidden" style="
         position: fixed;
         top: 0;
         left: 0;
@@ -251,18 +258,18 @@
         z-index: 9999;
         animation: fadeIn 0.5s ease-in-out;
     ">
-                <div style="text-align: center; animation: slideInDown 0.6s ease-out;">
-                    <div
-                        style="color: rgba(255,255,255,0.8); font-size: 1.5rem; margin-bottom: 10px; font-family: 'Coming Soon', cursive;">
-                        ROUND <span id="preview-round-number">1</span>
-                    </div>
-                    <div id="preview-game-icon" style="
+        <div style="text-align: center; animation: slideInDown 0.6s ease-out;">
+            <div
+                style="color: rgba(255,255,255,0.8); font-size: 1.5rem; margin-bottom: 10px; font-family: 'Coming Soon', cursive;">
+                ROUND <span id="preview-round-number">1</span>
+            </div>
+            <div id="preview-game-icon" style="
                 font-size: 8rem;
                 margin: 20px 0;
                 animation: bounceIn 0.8s ease-out;
                 text-shadow: 0 10px 30px rgba(0,0,0,0.3);
             ">🧮</div>
-                    <h1 id="preview-game-name" style="
+            <h1 id="preview-game-name" style="
                 font-size: 4rem;
                 color: white;
                 margin: 20px 0;
@@ -270,17 +277,17 @@
                 font-family: 'Luckiest Guy', cursive;
                 letter-spacing: 3px;
             ">MATH QUIZ</h1>
-                    <p id="preview-game-description" style="
+            <p id="preview-game-description" style="
                 font-size: 1.5rem;
                 color: rgba(255,255,255,0.9);
                 margin: 20px 0;
                 font-family: 'Coming Soon', cursive;
             ">Answer math problems as fast as you can!</p>
-                </div>
-            </div>
+        </div>
+    </div>
 
-            <!-- COUNTDOWN OVERLAY -->
-            <div id="countdown-overlay" class="hidden" style="
+    <!-- COUNTDOWN OVERLAY -->
+    <div id="countdown-overlay" class="hidden" style="
         position: fixed;
         top: 0;
         left: 0;
@@ -292,47 +299,46 @@
         justify-content: center;
         z-index: 10000;
     ">
-                <div id="countdown-number" style="
+        <div id="countdown-number" style="
             font-size: 15rem;
             font-weight: bold;
             color: var(--school-bus-yellow);
             text-shadow: 0 0 40px rgba(243,156,18,0.5);
             animation: countdownPulse 1s ease-in-out;
         ">3</div>
+    </div>
+
+    <!-- MODAL: PROFILE -->
+    <div id="modal-profile" class="modal-overlay hidden">
+        <div class="panel">
+            <h2>STUDENT ID</h2>
+
+            <!-- Colors -->
+            <div class="color-grid">
+                <div class="color-dot" style="background:#E74C3C" data-color="#E74C3C"></div>
+                <div class="color-dot" style="background:#3498DB" data-color="#3498DB"></div>
+                <div class="color-dot" style="background:#2ECC71" data-color="#2ECC71"></div>
+                <div class="color-dot" style="background:#F1C40F" data-color="#F1C40F"></div>
+                <div class="color-dot" style="background:#9B59B6" data-color="#9B59B6"></div>
             </div>
 
-            <!-- MODAL: PROFILE -->
-            <div id="modal-profile" class="modal-overlay hidden">
-                <div class="panel">
-                    <h2>STUDENT ID</h2>
-
-                    <!-- Colors -->
-                    <div class="color-grid">
-                        <div class="color-dot" style="background:#E74C3C" data-color="#E74C3C"></div>
-                        <div class="color-dot" style="background:#3498DB" data-color="#3498DB"></div>
-                        <div class="color-dot" style="background:#2ECC71" data-color="#2ECC71"></div>
-                        <div class="color-dot" style="background:#F1C40F" data-color="#F1C40F"></div>
-                        <div class="color-dot" style="background:#9B59B6" data-color="#9B59B6"></div>
-                    </div>
-
-                    <!-- Shapes -->
-                    <div style="margin: 20px;">
-                        <label>Shape:</label>
-                        <select id="profile-shape" style="padding:5px; font-size:1.2rem;">
-                            <option value="circle">Circle</option>
-                            <option value="square">Square</option>
-                            <option value="triangle">Triangle</option>
-                        </select>
-                    </div>
-
-                    <button id="btn-save-profile" class="btn-primary">SAVE ID</button>
-                    <br><br>
-                    <button id="btn-cancel-profile"
-                        style="background:none; color:#aaa; font-size:0.9rem;">Cancel</button>
-                </div>
+            <!-- Shapes -->
+            <div style="margin: 20px;">
+                <label>Shape:</label>
+                <select id="profile-shape" style="padding:5px; font-size:1.2rem;">
+                    <option value="circle">Circle</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                </select>
             </div>
 
-            <script src="/static/app.js"></script>
+            <button id="btn-save-profile" class="btn-primary">SAVE ID</button>
+            <br><br>
+            <button id="btn-cancel-profile" style="background:none; color:#aaa; font-size:0.9rem;">Cancel</button>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
 </body>
 
 </html>
