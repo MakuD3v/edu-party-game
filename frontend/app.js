@@ -131,6 +131,7 @@ class NetworkService {
     constructor() {
         this.ws = null;
         this.listeners = []; // Observers
+        this.connected = false; // Track WebSocket state
     }
 
     async login(username, password) {
@@ -165,9 +166,19 @@ class NetworkService {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         this.ws = new WebSocket(`${protocol}//${window.location.host}/ws/${username}`);
 
+        this.ws.onopen = () => {
+            console.log('WebSocket connected');
+            this.connected = true;
+        };
+
         this.ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
             this.notify(msg);
+        };
+
+        this.ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            this.connected = false;
         };
     }
 
@@ -208,6 +219,36 @@ class AppController {
 
         // Network Listener
         this.net.subscribe(this.handleServerEvent.bind(this));
+
+        // Check for existing session on page load
+        this.checkExistingSession();
+    }
+
+    checkExistingSession() {
+        const sessionData = localStorage.getItem('eduPartySession');
+        if (sessionData) {
+            try {
+                const session = JSON.parse(sessionData);
+                // Auto-login with stored session
+                this.restoreSession(session);
+            } catch (e) {
+                localStorage.removeItem('eduPartySession');
+            }
+        }
+    }
+
+    async restoreSession(session) {
+        // Restore user state
+        this.state.user = session.user;
+
+        // Update UI
+        this.ui.updateBadge(session.user.username, session.user.color, session.user.shape);
+        this.ui.toggleBadge(true);
+        this.ui.showScreen('home');
+
+        // Reconnect WebSocket
+        this.net.connect(session.user.username);
+        this.refreshLobbyList();
     }
 
     bindEvents() {
@@ -336,6 +377,12 @@ class AppController {
             shape: data.state.shape
         };
 
+        // Save session to localStorage
+        localStorage.setItem('eduPartySession', JSON.stringify({
+            user: this.state.user,
+            timestamp: Date.now()
+        }));
+
         // State Transition
         this.ui.updateBadge(this.state.user.username, this.state.user.color, this.state.user.shape);
         this.ui.toggleBadge(true);
@@ -343,7 +390,22 @@ class AppController {
 
         // Connect Real-time
         this.net.connect(this.state.user.username);
-        this.refreshLobbyList();
+
+        // Wait for WebSocket to be ready before allowing lobby operations
+        const checkConnection = setInterval(() => {
+            if (this.net.connected) {
+                clearInterval(checkConnection);
+                this.refreshLobbyList();
+            }
+        }, 100); // Check every 100ms
+
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            clearInterval(checkConnection);
+            if (!this.net.connected) {
+                console.warn('WebSocket connection timeout');
+            }
+        }, 5000);
     }
 
     async refreshLobbyList() {
