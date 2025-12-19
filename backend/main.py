@@ -63,7 +63,7 @@ async def login(payload: dict):
 
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
-    """Returns a real-time list of active lobbies.""
+    """Returns a real-time list of active lobbies."
     return manager.get_all_summaries()
 
 # --- WebSocket Endpoint (Stateful) ---
