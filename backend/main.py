@@ -29,6 +29,12 @@ app.add_middleware(
 import os
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../frontend")), name="static")
 
+from fastapi.responses import FileResponse
+
+@app.get("/")
+async def get_index():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "../frontend/index.html"))
+
 # Mock User Database (In-Memory for this lesson)
 MOCK_DB = {
     "student": {"password": "123", "color": "#E74C3C", "shape": ShapeEnum.SQUARE},
