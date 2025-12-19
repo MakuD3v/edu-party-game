@@ -326,6 +326,35 @@ class AppController {
             this.refreshLobbyList();
         });
 
+        // Typing Game Input
+        const typeInput = document.getElementById('typing-input');
+        if (typeInput) {
+            typeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const typed = typeInput.value.trim();
+                    if (this.state.typingWords && this.state.typingWords[this.state.currentWordIndex]) {
+                        this.net.send('SUBMIT_WORD', {
+                            current_word: this.state.typingWords[this.state.currentWordIndex],
+                            typed_word: typed
+                        });
+                    }
+                }
+            });
+
+            // Also validate on input for instant feedback if they type it correctly without enter
+            typeInput.addEventListener('input', (e) => {
+                const typed = typeInput.value.trim();
+                const current = (this.state.typingWords && this.state.typingWords[this.state.currentWordIndex]) || "";
+                if (typed.toLowerCase() === current.toLowerCase()) {
+                    this.net.send('SUBMIT_WORD', {
+                        current_word: current,
+                        typed_word: typed
+                    });
+                }
+            });
+        }
+
         // Profile
         document.getElementById('profile-badge').addEventListener('click', () => this.ui.toggleModal(true));
         document.getElementById('btn-cancel-profile').addEventListener('click', () => this.ui.toggleModal(false));
