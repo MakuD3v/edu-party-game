@@ -524,6 +524,10 @@ class AppController {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
 
+        // Set total positions in UI
+        const totalPosEl = document.getElementById('maze-total-pos');
+        if (totalPosEl) totalPosEl.textContent = mazeData.layout?.length || 20;
+
         this.renderMaze();
     }
 
@@ -582,6 +586,15 @@ class AppController {
 
                 const x = stepWidth * (position + 0.5);
                 const y = centerY;
+                const isCurrentPlayer = player.username === this.state.user.username;
+
+                // Highlight current player with glow effect
+                if (isCurrentPlayer) {
+                    ctx.shadowColor = '#F1C40F';
+                    ctx.shadowBlur = 25;
+                    ctx.strokeStyle = '#F1C40F';
+                    ctx.lineWidth = 4;
+                }
 
                 // Draw player shape
                 ctx.fillStyle = player.color || '#9B59B6';
@@ -590,8 +603,10 @@ class AppController {
                     ctx.beginPath();
                     ctx.arc(x, y, 20, 0, Math.PI * 2);
                     ctx.fill();
+                    if (isCurrentPlayer) ctx.stroke();
                 } else if (player.shape === 'square') {
                     ctx.fillRect(x - 20, y - 20, 40, 40);
+                    if (isCurrentPlayer) ctx.strokeRect(x - 20, y - 20, 40, 40);
                 } else if (player.shape === 'triangle') {
                     ctx.beginPath();
                     ctx.moveTo(x, y - 20);
@@ -599,13 +614,24 @@ class AppController {
                     ctx.lineTo(x + 20, y + 20);
                     ctx.closePath();
                     ctx.fill();
+                    if (isCurrentPlayer) ctx.stroke();
                 }
 
-                // Draw player name
+                // Reset shadow
+                ctx.shadowBlur = 0;
+
+                // Draw player name with (YOU) label
                 ctx.fillStyle = '#fff';
                 ctx.font = 'bold 12px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(player.username, x, y + 40);
+                const displayName = isCurrentPlayer ? `${player.username} (YOU)` : player.username;
+                ctx.fillText(displayName, x, y + 40);
+
+                // Update position indicator for current player
+                if (isCurrentPlayer) {
+                    const posEl = document.getElementById('maze-current-pos');
+                    if (posEl) posEl.textContent = position;
+                }
             });
         }
 

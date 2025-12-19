@@ -181,6 +181,14 @@
     <div id="screen-game3" class="screen" style="position: relative;">
         <div class="panel" style="max-width:900px; width:95%;">
             <h1 style="color:var(--school-bus-yellow);">🧩 MAZE CHALLENGE</h1>
+
+            <!-- Position Indicator -->
+            <div id="maze-position-indicator"
+                style="text-align: center; font-size: 1.8rem; margin: 15px 0; color: var(--chalk-white); font-weight: bold;">
+                Position: <span id="maze-current-pos" style="color: var(--school-bus-yellow);">0</span> / <span
+                    id="maze-total-pos">20</span>
+            </div>
+
             <!-- Maze Canvas Layer -->
             <div
                 style="position: relative; width: 100%; height: 60vh; background: #222; border-radius: 10px; overflow: hidden;">
