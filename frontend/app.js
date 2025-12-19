@@ -197,7 +197,8 @@ class AppController {
         this.state = {
             user: null, // {username, color, shape}
             connected: false,
-            isRegisterMode: false // Track auth mode
+            isRegisterMode: false, // Track auth mode
+            isReady: false // Track player ready state
         };
 
         // Bind UI Events
@@ -301,6 +302,7 @@ class AppController {
 
         // Lobby
         document.getElementById('btn-ready').addEventListener('click', () => {
+            this.toggleReadyState();
             this.net.send('TOGGLE_READY');
         });
 
@@ -337,11 +339,31 @@ class AppController {
         });
     }
 
+    toggleReadyState() {
+        this.state.isReady = !this.state.isReady;
+        this.updateReadyButton();
+    }
+
+    updateReadyButton() {
+        const readyBtn = document.getElementById('btn-ready');
+        if (this.state.isReady) {
+            readyBtn.style.background = '#2ECC71'; // Green
+            readyBtn.textContent = 'READY ✓';
+        } else {
+            readyBtn.style.background = '#E74C3C'; // Red
+            readyBtn.textContent = 'READY';
+        }
+    }
+
     handleServerEvent(msg) {
         console.log('[Event]', msg);
 
         switch (msg.type) {
             case 'LOBBY_JOINED':
+                // Reset ready state when joining a lobby
+                this.state.isReady = false;
+                this.updateReadyButton();
+
                 this.ui.showScreen('lobby');
                 document.getElementById('lobby-title-id').textContent = '#' + msg.payload.id;
                 document.getElementById('lobby-host-name').textContent = 'Host: ' + msg.payload.host_name;
@@ -350,6 +372,11 @@ class AppController {
                 const startBtn = document.getElementById('btn-start');
                 if (msg.payload.host_name === this.state.user.username) {
                     startBtn.style.display = 'inline-block';
+                    // Initialize as disabled/grayed
+                    startBtn.disabled = true;
+                    startBtn.style.background = '#555';
+                    startBtn.style.opacity = '0.5';
+                    startBtn.style.cursor = 'not-allowed';
                 } else {
                     startBtn.style.display = 'none';
                 }
@@ -358,13 +385,32 @@ class AppController {
             case 'ROSTER_UPDATE':
                 this.ui.renderRoster(msg.payload);
 
+                // Update player's own ready state from roster
+                const currentPlayer = msg.payload.find(p => p.username === this.state.user.username);
+                if (currentPlayer) {
+                    this.state.isReady = currentPlayer.is_ready;
+                    this.updateReadyButton();
+                }
+
                 // Update start button state for host
                 const startButton = document.getElementById('btn-start');
                 if (startButton.style.display !== 'none') {
                     // Check if all players are ready
                     const allReady = msg.payload.every(p => p.is_ready);
                     const hasPlayers = msg.payload.length > 1;
-                    startButton.disabled = !(allReady && hasPlayers);
+                    const canStart = allReady && hasPlayers;
+                    startButton.disabled = !canStart;
+
+                    // Update visual state
+                    if (canStart) {
+                        startButton.style.background = '#F39C12'; // Orange - lit up
+                        startButton.style.opacity = '1';
+                        startButton.style.cursor = 'pointer';
+                    } else {
+                        startButton.style.background = '#555'; // Gray
+                        startButton.style.opacity = '0.5';
+                        startButton.style.cursor = 'not-allowed';
+                    }
                 }
                 break;
 
