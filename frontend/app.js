@@ -627,6 +627,37 @@ class AppController {
         overlay.classList.add('hidden');
     }
 
+    showGamePreview(data) {
+        const overlay = document.getElementById('game-preview-overlay');
+        const icon = document.getElementById('preview-game-icon');
+        const name = document.getElementById('preview-game-name');
+        const description = document.getElementById('preview-game-description');
+        const roundNumber = document.getElementById('preview-round-number');
+
+        // Update content
+        const gameInfo = data.game_info;
+        icon.textContent = gameInfo.icon;
+        name.textContent = gameInfo.name;
+        description.textContent = gameInfo.description;
+        roundNumber.textContent = data.round_number;
+
+        // Dynamic background based on game color
+        const colorMap = {
+            '#E74C3C': 'linear-gradient(135deg, rgba(231, 76, 60, 0.95) 0%, rgba(192, 57, 43, 0.95) 100%)', // Red for Math
+            '#3498DB': 'linear-gradient(135deg, rgba(52, 152, 219, 0.95) 0%, rgba(41, 128, 185, 0.95) 100%)', // Blue for Typing
+            '#F39C12': 'linear-gradient(135deg, rgba(243, 156, 18, 0.95) 0%, rgba(211, 84, 0, 0.95) 100%)' // Orange for Maze
+        };
+        overlay.style.background = colorMap[gameInfo.color] || colorMap['#3498DB'];
+
+        // Show overlay
+        overlay.classList.remove('hidden');
+
+        // Auto-hide after 3 seconds (backend waits 3 seconds)
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 3000);
+    }
+
     handleServerEvent(msg) {
         console.log('[Event]', msg);
 
@@ -703,6 +734,13 @@ class AppController {
                 break;
 
             // === GAME EVENTS ===
+
+            // EDU PARTY Educational Mayhem game preview
+            case 'GAME_PREVIEW':
+                console.log('GAME_PREVIEW received:', msg.payload);
+                this.showGamePreview(msg.payload);
+                break;
+
             case 'GAME_1_START':
                 console.log('GAME_1_START received:', msg.payload);
 

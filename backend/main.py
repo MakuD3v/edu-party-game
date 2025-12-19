@@ -447,20 +447,33 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     for p in lobby.players.values():
                         p.is_ready = True
                 
-                # Select Random Game (Cycle)
-                # But for now, if we want to ensure we see all 3... 
-                # Let's use the randomizer we built!
+                # Select next game with improved randomization
                 next_game = lobby.select_next_game()
-                # next_game = 3 # Force Game 3 for testing if needed
-                
                 lobby.current_game = next_game
+                
+                # Get game metadata for preview
+                from .logic import Lobby
+                game_info = Lobby.get_game_info(next_game)
+                
+                # Send game preview/announcement (EDU PARTY Educational Mayhem style)
+                await lobby.broadcast({
+                    "type": "GAME_PREVIEW",
+                    "payload": {
+                        "game_number": next_game,
+                        "game_info": game_info,
+                        "round_number": len(lobby.game_history)
+                    }
+                })
+                
+                # Wait 3 seconds for preview animation
+                await asyncio.sleep(3)
                 
                 if next_game == 1:
                     lobby.start_tournament() # Reset if starting tournament
                     print(f"[GAME1] Starting Math Quiz")
                     await lobby.broadcast({
                         "type": "GAME_1_START",
-                        "payload": {"duration": 20}
+                        "payload": {"duration": 20, "game_info": game_info}
                     })
                     asyncio.create_task(run_game_1(lobby))
                     
@@ -469,7 +482,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     lobby.player_scores = {pid: 0 for pid in lobby.active_players}
                     await lobby.broadcast({
                         "type": "GAME_2_START",
-                        "payload": {"duration": 60}
+                        "payload": {"duration": 60, "game_info": game_info}
                     })
                     asyncio.create_task(run_game_2(lobby))
                     
@@ -477,69 +490,12 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     print(f"[GAME3] Starting Maze Challenge")
                     await lobby.broadcast({
                         "type": "GAME_3_START",
-                        "payload": {"duration": 90}
+                        "payload": {"duration": 90, "game_info": game_info}
                     })
                     asyncio.create_task(run_game_3(lobby))
 
+
             # --- SUBMIT ANSWER (GAME 1) ---
-            elif event_type == "SUBMIT_ANSWER":
-                if lobby and lobby.current_game == 1:
-                    try:
-                        answer = int(data.get("answer"))
-                        is_correct = lobby.check_answer(player.id, answer)
-                        # Notify player
-                        await websocket.send_json({
-                            "type": "ANSWER_RESULT",
-                            "payload": {"correct": is_correct}
-                        })
-                        # Send new question
-                        new_q = lobby.generate_math_question()
-                        await websocket.send_json({"type": "NEW_QUESTION", "payload": new_q})
-                        # Broadcast scores
-                        await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
-                    except:
-                        pass
-
-            # --- SUBMIT WORD (GAME 2) ---
-            elif event_type == "SUBMIT_WORD":
-                if lobby and lobby.current_game == 2:
-                    current_word = data.get("current_word")
-                    typed_word = data.get("typed_word")
-                    
-                    if lobby.check_typed_word(player.id, current_word, typed_word):
-                        await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": True}})
-                        await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
-                    else:
-                        await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": False}})
-
-            # --- MAZE ACTIONS (GAME 3) ---
-            elif event_type == "MAZE_MOVE":
-                if lobby and lobby.current_game == 3:
-                     direction = data.get("direction", "right")
-                     result = lobby.move_player_maze(player.id, direction)
-                     if result["moved"]:
-                         # Broadcast movement to everyone so they can animate
-                         await lobby.broadcast({
-                             "type": "PLAYER_MOVED",
-                             "payload": {
-                                 "player_id": player.id,
-                                 "new_pos": result["new_pos"],
-                                 "shape": result["shape"] if "shape" in result else None # Optimize payload?
-                             }
-                         })
-                         
-                         # Check if hit checkpoint
-                         if result.get("checkpoint"):
-                             await websocket.send_json({
-                                 "type": "MAZE_CHECKPOINT",
-                                 "payload": result["checkpoint"]
-                             })
-            
-            elif event_type == "MAZE_SOLVE":
-                # Validate checkpoint answer
-                 pass # Front-end can handle simple validation for MVP, or backend if robust
-            
-            # --- SUBMIT ANSWER ---
             elif event_type == "SUBMIT_ANSWER":
                 if not player.lobby_id:
                     continue
@@ -548,35 +504,75 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 if not lobby or lobby.current_game != 1:
                     continue
                 
-                answer = data.get("answer")
                 try:
-                    answer_int = int(answer)
+                    answer = int(data.get("answer"))
+                    is_correct = lobby.check_answer(player.id, answer)
+                    
+                    # Notify player
+                    await websocket.send_json({
+                        "type": "ANSWER_RESULT",
+                        "payload": {"correct": is_correct}
+                    })
+                    
+                    # Send new question
+                    new_q = lobby.generate_math_question()
+                    await websocket.send_json({"type": "NEW_QUESTION", "payload": new_q})
+                    
+                    # Broadcast scores
+                    await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
                 except (ValueError, TypeError):
                     await websocket.send_json({"type": "ERROR", "msg": "Invalid answer"})
+
+            # --- SUBMIT WORD (GAME 2) ---
+            elif event_type == "SUBMIT_WORD":
+                if not player.lobby_id:
                     continue
                 
-                # Check answer and update score
-                is_correct = lobby.check_answer(player.id, answer_int)
+                lobby = manager.get_lobby(player.lobby_id)
+                if not lobby or lobby.current_game != 2:
+                    continue
                 
-                # Send immediate feedback to player
-                await websocket.send_json({
-                    "type": "ANSWER_RESULT",
-                    "payload": {"correct": is_correct}
-                })
+                current_word = data.get("current_word")
+                typed_word = data.get("typed_word")
                 
-                # Send new question immediately (continuous flow)
-                question = lobby.generate_math_question()
-                await websocket.send_json({
-                    "type": "NEW_QUESTION",
-                    "payload": question
-                })
+                if lobby.check_typed_word(player.id, current_word, typed_word):
+                    await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": True}})
+                    await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
+                else:
+                    await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": False}})
+
+            # --- MAZE ACTIONS (GAME 3) ---
+            elif event_type == "MAZE_MOVE":
+                if not player.lobby_id:
+                    continue
                 
-                # Broadcast updated leaderboard
-                leaderboard = lobby.get_leaderboard()
-                await lobby.broadcast({
-                    "type": "SCORE_UPDATE",
-                    "payload": leaderboard
-                })
+                lobby = manager.get_lobby(player.lobby_id)
+                if not lobby or lobby.current_game != 3:
+                    continue
+                
+                direction = data.get("direction", "right")
+                result = lobby.move_player_maze(player.id, direction)
+                if result["moved"]:
+                    # Broadcast movement to everyone so they can animate
+                    await lobby.broadcast({
+                        "type": "PLAYER_MOVED",
+                        "payload": {
+                            "player_id": player.id,
+                            "new_pos": result["new_pos"],
+                            "shape": result["shape"] if "shape" in result else None
+                        }
+                    })
+                    
+                    # Check if hit checkpoint
+                    if result.get("checkpoint"):
+                        await websocket.send_json({
+                            "type": "MAZE_CHECKPOINT",
+                            "payload": result["checkpoint"]
+                        })
+            
+            elif event_type == "MAZE_SOLVE":
+                # Validate checkpoint answer
+                pass # Front-end can handle simple validation for MVP, or backend if robust
 
     except WebSocketDisconnect:
         # 3. Cleanup Phase
