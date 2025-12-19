@@ -602,10 +602,16 @@ class AppController {
 
             // === GAME EVENTS ===
             case 'GAME_1_START':
+                console.log('GAME_1_START received:', msg.payload);
                 this.ui.showScreen('game1');
                 this.state.gameTimer = msg.payload.duration;
+                // Set initial timer display
+                const timerEl = document.getElementById('game-timer');
+                if (timerEl) {
+                    timerEl.textContent = this.state.gameTimer;
+                }
                 this.startGameTimer();
-                // Question will arrive via NEW_QUESTION
+                console.log('Waiting for NEW_QUESTION event...');
                 break;
 
             case 'NEW_QUESTION':
