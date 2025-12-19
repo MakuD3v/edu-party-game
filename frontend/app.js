@@ -1027,7 +1027,15 @@ class AppController {
             case 'MAZE_START':
                 console.log('MAZE_START received:', msg.payload);
                 this.state.currentGame = 3;
-                this.initMazeGame(msg.payload);
+
+                // Ensure game3 screen is visible
+                this.ui.showScreen('game3');
+
+                // Wait for DOM to be ready, then initialize
+                setTimeout(() => {
+                    console.log('Initializing maze game...');
+                    this.initMazeGame(msg.payload);
+                }, 100);
                 break;
 
             case 'PLAYER_MOVED':
