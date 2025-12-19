@@ -600,10 +600,17 @@ class AppController {
             if (secondsLeft <= 0) {
                 clearInterval(interval);
                 document.getElementById('tutorial-modal').classList.add('hidden');
-                // After tutorial, show countdown
+                // After tutorial, show countdown then start game
                 this.showCountdown().then(() => {
-                    // Countdown complete - game will start via backend event
-                    console.log('Countdown complete, waiting for game start');
+                    // Start the actual game after countdown - use currentGame to determine screen
+                    const screenName = `game${this.state.currentGame}`;
+                    this.ui.showScreen(screenName);
+                    const timerEl = document.getElementById('game-timer');
+                    if (timerEl) {
+                        timerEl.textContent = this.state.gameTimer;
+                    }
+                    this.startGameTimer();
+                    console.log(`Game ${this.state.currentGame} started after tutorial + countdown`);
                 });
             }
         }, 1000);
@@ -744,32 +751,27 @@ class AppController {
             case 'GAME_1_START':
                 console.log('GAME_1_START received:', msg.payload);
 
-                // Show tutorial first (it will auto-dismiss and trigger countdown)
-                this.showTutorial(1);
-
-                // Store game state for after countdown
+                // Store game state
                 this.state.gameTimer = msg.payload.duration;
-                this.state.pendingGameStart = () => {
-                    this.ui.showScreen('game1');
-                    // Set initial timer display
-                    const timerEl = document.getElementById('game-timer');
-                    if (timerEl) {
-                        timerEl.textContent = this.state.gameTimer;
-                    }
-                    this.startGameTimer();
-                    console.log('Game 1 started after tutorial + countdown');
-                };
 
-                // After countdown (triggered by tutorial), start the game
-                setTimeout(() => {
-                    if (this.state.pendingGameStart) {
-                        this.state.pendingGameStart();
-                        this.state.pendingGameStart = null;
-                    }
-                }, 8000); // 5s tutorial + 3s countdown
+                // Show tutorial first
+                this.showTutorial(1);
                 break;
 
-            case 'NEW_QUESTION':
+            
+            case 'GAME_2_START':
+                console.log('GAME_2_START received:', msg.payload);
+                this.state.gameTimer = msg.payload.duration;
+                this.state.currentGame = 2;
+                this.showTutorial(2);
+                break;
+
+            case 'GAME_3_START':
+                console.log('GAME_3_START received:', msg.payload);
+                this.state.gameTimer = msg.payload.duration;
+                this.state.currentGame = 3;
+                this.showTutorial(3);
+                break;case 'NEW_QUESTION':
                 console.log('Received NEW_QUESTION:', msg.payload);
                 const question = msg.payload;
                 const questionEl = document.getElementById('math-question');
