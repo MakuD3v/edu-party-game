@@ -327,11 +327,19 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 if not lobby:
                     continue
                 
-                # Validate all players are ready
-                all_ready = all(p.is_ready for p in lobby.players.values())
-                if not all_ready:
-                    await websocket.send_json({"type": "ERROR", "msg": "Not all players are ready"})
-                    continue
+                # Check for test mode (bypasses validations)
+                test_mode = data.get("test_mode", False)
+                
+                if not test_mode:
+                    # Normal mode: Validate all players are ready
+                    all_ready = all(p.is_ready for p in lobby.players.values())
+                    if not all_ready:
+                        await websocket.send_json({"type": "ERROR", "msg": "Not all players are ready"})
+                        continue
+                else:
+                    # Test mode: Force all players to be ready
+                    for p in lobby.players.values():
+                        p.is_ready = True
                 
                 # Start tournament
                 lobby.start_tournament()

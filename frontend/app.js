@@ -353,6 +353,11 @@ class AppController {
             this.net.send('START_GAME');
         });
 
+        document.getElementById('btn-test-mode').addEventListener('click', () => {
+            // Force start game in test mode (bypasses checks)
+            this.net.send('START_GAME', { test_mode: true });
+        });
+
         document.getElementById('btn-leave').addEventListener('click', () => {
             this.net.send('LEAVE_LOBBY');
         });
@@ -530,10 +535,13 @@ class AppController {
                 document.getElementById('lobby-title-id').textContent = '#' + msg.payload.id;
                 document.getElementById('lobby-host-name').textContent = 'Host: ' + msg.payload.host_name;
 
-                // Show start button if user is host
+                // Show start button and test mode button if user is host
                 const startBtn = document.getElementById('btn-start');
+                const testBtn = document.getElementById('btn-test-mode');
+
                 if (msg.payload.host_name === this.state.user.username) {
                     startBtn.style.display = 'inline-block';
+                    testBtn.style.display = 'inline-block'; // Show test mode for host
                     // Initialize as disabled/grayed
                     startBtn.disabled = true;
                     startBtn.style.background = '#555';
@@ -541,6 +549,7 @@ class AppController {
                     startBtn.style.cursor = 'not-allowed';
                 } else {
                     startBtn.style.display = 'none';
+                    testBtn.style.display = 'none';
                 }
                 break;
 
