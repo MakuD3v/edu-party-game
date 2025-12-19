@@ -1,4 +1,3 @@
-```
 """
 FastAPI WebSocket server with user authentication and lobby management."""
 main.py
@@ -173,4 +172,3 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         "type": "ROSTER_UPDATE",
                         "payload": roster_data
                     })
-```
