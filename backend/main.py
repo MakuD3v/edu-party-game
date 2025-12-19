@@ -125,6 +125,68 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     
     return AuthResponse(token=username, username=username, state=dummy_state)
 
+# === GAME TIMER FUNCTIONS ===
+
+async def run_game_1(lobby):
+    """Run Game 1 (Math Quiz) for 20 seconds."""
+    import asyncio
+    import time
+    
+    # Send first question to all active players
+    question = lobby.generate_math_question()
+    for player_id in lobby.active_players:
+        if player_id in lobby.players:
+            player = lobby.players[player_id]
+            try:
+                await player.websocket.send_json({
+                    "type": "NEW_QUESTION",
+                    "payload": question
+                })
+            except Exception:
+                pass
+    
+    # Wait for 20 seconds
+    await asyncio.sleep(20)
+    
+    # Game Over - Calculate results
+    leaderboard = lobby.get_leaderboard()
+    advancing, eliminated = lobby.advance_players()
+    
+    # Get player info for results
+    advancing_players = []
+    eliminated_players = []
+    
+    for pid in advancing:
+        if pid in lobby.players:
+            p = lobby.players[pid]
+            advancing_players.append({
+                'username': p.username,
+                'score': lobby.player_scores.get(pid, 0),
+                'color': p.color,
+                'shape': p.shape.value
+            })
+    
+    for pid in eliminated:
+        if pid in lobby.players:
+            p = lobby.players[pid]
+            eliminated_players.append({
+                'username': p.username,
+                'score': lobby.player_scores.get(pid, 0),
+                'color': p.color,
+                'shape': p.shape.value
+            })
+    
+    # Broadcast round end results
+    await lobby.broadcast({
+        "type": "ROUND_END",
+        "payload": {
+            "game": 1,
+            "advancing": advancing_players,
+            "eliminated": eliminated_players,
+            "next_game": 2 if len(advancing) > 1 else None
+        }
+    })
+
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
     """Returns a real-time list of active lobbies."""
@@ -254,6 +316,76 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "type": "ROSTER_UPDATE",
                             "payload": roster_data
                         })
+            
+            # --- START GAME ---
+            elif event_type == "START_GAME":
+                if not player.is_host or not player.lobby_id:
+                    await websocket.send_json({"type": "ERROR", "msg": "Only host can start game"})
+                    continue
+                
+                lobby = manager.get_lobby(player.lobby_id)
+                if not lobby:
+                    continue
+                
+                # Validate all players are ready
+                all_ready = all(p.is_ready for p in lobby.players.values())
+                if not all_ready:
+                    await websocket.send_json({"type": "ERROR", "msg": "Not all players are ready"})
+                    continue
+                
+                # Start tournament
+                lobby.start_tournament()
+                
+                # Broadcast game start to all players
+                await lobby.broadcast({
+                    "type": "GAME_1_START",
+                    "payload": {
+                        "duration": 20,
+                        "active_players": lobby.active_players
+                    }
+                })
+                
+                # Start sending questions for 20 seconds
+                asyncio.create_task(run_game_1(lobby))
+            
+            # --- SUBMIT ANSWER ---
+            elif event_type == "SUBMIT_ANSWER":
+                if not player.lobby_id:
+                    continue
+                
+                lobby = manager.get_lobby(player.lobby_id)
+                if not lobby or lobby.current_game != 1:
+                    continue
+                
+                answer = data.get("answer")
+                try:
+                    answer_int = int(answer)
+                except (ValueError, TypeError):
+                    await websocket.send_json({"type": "ERROR", "msg": "Invalid answer"})
+                    continue
+                
+                # Check answer and update score
+                is_correct = lobby.check_answer(player.id, answer_int)
+                
+                # Send immediate feedback to player
+                await websocket.send_json({
+                    "type": "ANSWER_RESULT",
+                    "payload": {"correct": is_correct}
+                })
+                
+                # Send new question immediately (continuous flow)
+                question = lobby.generate_math_question()
+                await websocket.send_json({
+                    "type": "NEW_QUESTION",
+                    "payload": question
+                })
+                
+                # Broadcast updated leaderboard
+                leaderboard = lobby.get_leaderboard()
+                await lobby.broadcast({
+                    "type": "SCORE_UPDATE",
+                    "payload": leaderboard
+                })
 
     except WebSocketDisconnect:
         # 3. Cleanup Phase

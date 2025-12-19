@@ -198,7 +198,9 @@ class AppController {
             user: null, // {username, color, shape}
             connected: false,
             isRegisterMode: false, // Track auth mode
-            isReady: false // Track player ready state
+            isReady: false, // Track player ready state
+            gameTimer: 0, // Game countdown timer
+            timerInterval: null // Timer interval ID
         };
 
         // Bind UI Events
@@ -313,6 +315,18 @@ class AppController {
         document.getElementById('btn-leave').addEventListener('click', () => {
             this.net.send('LEAVE_LOBBY');
         });
+
+        // Game 1 Answer Submission
+        document.getElementById('btn-submit-answer').addEventListener('click', () => {
+            this.submitAnswer();
+        });
+
+        // Allow Enter key to submit answer
+        document.getElementById('math-answer').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.submitAnswer();
+            }
+        });
     }
 
     handleLoginSuccess(data) {
@@ -352,6 +366,92 @@ class AppController {
         } else {
             readyBtn.style.background = '#E74C3C'; // Red
             readyBtn.textContent = 'READY';
+        }
+    }
+
+    // === GAME METHODS ===
+
+    submitAnswer() {
+        const answer = document.getElementById('math-answer').value;
+        if (answer) {
+            this.net.send('SUBMIT_ANSWER', { answer });
+        }
+    }
+
+    startGameTimer() {
+        const timerEl = document.getElementById('game-timer');
+
+        this.state.timerInterval = setInterval(() => {
+            this.state.gameTimer--;
+            timerEl.textContent = this.state.gameTimer;
+
+            if (this.state.gameTimer <= 0) {
+                clearInterval(this.state.timerInterval);
+            }
+        }, 1000);
+    }
+
+    renderLeaderboard(leaderboard) {
+        const container = document.getElementById('game-leaderboard');
+        const spectatorContainer = document.getElementById('spectator-leaderboard');
+
+        const html = leaderboard.map((player, index) => `
+            <div class="leaderboard-row">
+                <span class="rank">#${index + 1}</span>
+                <span style="flex:1; text-align:left; padding-left:10px;">${player.username}</span>
+                <span style="color:var(--school-bus-yellow); font-weight:bold; font-size:1.2rem;">${player.score}</span>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+        if (spectatorContainer) {
+            spectatorContainer.innerHTML = html;
+        }
+    }
+
+    showIntermission(data) {
+        // Check if current player was eliminated
+        const isEliminated = data.eliminated.some(p => p.username === this.state.user.username);
+
+        if (isEliminated) {
+            // Show spectator mode
+            this.ui.showScreen('spectator');
+        } else {
+            // Show intermission screen
+            this.ui.showScreen('intermission');
+
+            // Render advancing players
+            const advancingHtml = data.advancing.map(p => `
+                <div class="player-chip">
+                    <span>${p.username}</span>
+                    <span class="score">${p.score} pts</span>
+                </div>
+            `).join('');
+            document.getElementById('advancing-list').innerHTML = advancingHtml;
+
+            // Render eliminated players
+            const eliminatedHtml = data.eliminated.map(p => `
+                <div class="player-chip">
+                    <span>${p.username}</span>
+                    <span class="score">${p.score} pts</span>
+                </div>
+            `).join('');
+            document.getElementById('eliminated-list').innerHTML = eliminatedHtml;
+
+            // Show next game info or winner
+            const nextGameInfo = document.getElementById('next-game-info');
+            if (data.next_game) {
+                nextGameInfo.innerHTML = '<p>Next round coming soon...</p>';
+            } else {
+                // Tournament over, show winner
+                if (data.advancing.length > 0) {
+                    const winner = data.advancing[0];
+                    nextGameInfo.innerHTML = `
+                        <h2 style="color:var(--school-bus-yellow);">🎉 WINNER: ${winner.username}! 🎉</h2>
+                        <button class="btn-primary" onclick="location.reload()">RETURN TO MENU</button>
+                    `;
+                }
+            }
         }
     }
 
@@ -424,6 +524,46 @@ class AppController {
                 this.state.user.color = p.color;
                 this.state.user.shape = p.shape;
                 this.ui.updateBadge(p.username, p.color, p.shape);
+                break;
+
+            // === GAME EVENTS ===
+            case 'GAME_1_START':
+                this.ui.showScreen('game1');
+                this.state.gameTimer = msg.payload.duration;
+                this.startGameTimer();
+                // Question will arrive via NEW_QUESTION
+                break;
+
+            case 'NEW_QUESTION':
+                const question = msg.payload;
+                document.getElementById('math-question').textContent = question.text;
+                document.getElementById('math-answer').value = '';
+                document.getElementById('math-answer').focus();
+                document.getElementById('answer-feedback').textContent = '';
+                break;
+
+            case 'ANSWER_RESULT':
+                const feedback = document.getElementById('answer-feedback');
+                if (msg.payload.correct) {
+                    feedback.textContent = '✅ Correct!';
+                    feedback.style.color = '#2ECC71';
+                } else {
+                    feedback.textContent = '❌ Wrong';
+                    feedback.style.color = '#E74C3C';
+                }
+                // Clear feedback after 1 second
+                setTimeout(() => {
+                    feedback.textContent = '';
+                }, 1000);
+                break;
+
+            case 'SCORE_UPDATE':
+                this.renderLeaderboard(msg.payload);
+                break;
+
+            case 'ROUND_END':
+                clearInterval(this.state.timerInterval);
+                this.showIntermission(msg.payload);
                 break;
 
             case 'ERROR':

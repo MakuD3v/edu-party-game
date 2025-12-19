@@ -5,6 +5,8 @@ Implements specific game rules and state management using strict OOP.
 """
 import uuid
 import asyncio
+import random
+import time
 from typing import Dict, List, Optional
 from fastapi import WebSocket
 
@@ -55,6 +57,14 @@ class Lobby:
         self.max_capacity = max(5, min(max_capacity, 50)) # Clamp 5-50
         self.players: Dict[str, Player] = {}
         
+        # Tournament State
+        self.current_game: int = 0  # 0=lobby, 1=math, 2=typing, 3=maze
+        self.active_players: List[str] = []  # Player IDs still competing
+        self.spectators: List[str] = []  # Eliminated player IDs
+        self.player_scores: Dict[str, int] = {}  # Current game scores
+        self.game_start_time: float = 0.0
+        self.current_question: Dict | None = None
+        
         # Immediately add host
         self.add_player(host)
         host.is_host = True
@@ -103,6 +113,90 @@ class Lobby:
             max_players=self.max_capacity,
             is_full=self.is_full
         )
+    
+    # === TOURNAMENT GAME METHODS ===
+    
+    def start_tournament(self) -> None:
+        """Initialize tournament with all ready players as active."""
+        self.current_game = 1
+        self.active_players = [pid for pid, p in self.players.items() if p.is_ready]
+        self.spectators = []
+        self.player_scores = {pid: 0 for pid in self.active_players}
+        self.game_start_time = time.time()
+    
+    def generate_math_question(self) -> Dict:
+        """Generate a primary-grade math question (1-20 range)."""
+        num1 = random.randint(1, 20)
+        num2 = random.randint(1, 20)
+        operation = random.choice(['+', '-'])
+        
+        if operation == '+':
+            answer = num1 + num2
+            question = f"{num1} + {num2}"
+        else:
+            # Ensure no negative results
+            if num1 < num2:
+                num1, num2 = num2, num1
+            answer = num1 - num2
+            question = f"{num1} - {num2}"
+        
+        question_id = str(uuid.uuid4())[:8]
+        self.current_question = {
+            'id': question_id,
+            'text': question,
+            'answer': answer
+        }
+        return self.current_question
+    
+    def check_answer(self, player_id: str, answer: int) -> bool:
+        """Validate answer and update score if correct."""
+        if not self.current_question or player_id not in self.active_players:
+            return False
+        
+        is_correct = answer == self.current_question['answer']
+        if is_correct and player_id in self.player_scores:
+            self.player_scores[player_id] += 1
+        
+        return is_correct
+    
+    def get_leaderboard(self) -> List[Dict]:
+        """Return sorted leaderboard with player info."""
+        leaderboard = []
+        for pid in self.active_players:
+            if pid in self.players:
+                player = self.players[pid]
+                leaderboard.append({
+                    'player_id': pid,
+                    'username': player.username,
+                    'score': self.player_scores.get(pid, 0),
+                    'color': player.color,
+                    'shape': player.shape.value
+                })
+        
+        # Sort by score descending
+        leaderboard.sort(key=lambda x: x['score'], reverse=True)
+        return leaderboard
+    
+    def advance_players(self) -> tuple[List[str], List[str]]:
+        """Calculate top 50% to advance, rest become spectators."""
+        leaderboard = self.get_leaderboard()
+        total_active = len(self.active_players)
+        
+        if total_active <= 1:
+            # Edge case: only 1 player, they win
+            return self.active_players, []
+        
+        # Calculate how many advance (round up for odd numbers)
+        num_advancing = max(1, (total_active + 1) // 2)
+        
+        advancing = [p['player_id'] for p in leaderboard[:num_advancing]]
+        eliminated = [p['player_id'] for p in leaderboard[num_advancing:]]
+        
+        # Update state
+        self.active_players = advancing
+        self.spectators.extend(eliminated)
+        
+        return advancing, eliminated
 
 
 class ConnectionManager:
