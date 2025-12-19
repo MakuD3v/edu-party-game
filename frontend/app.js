@@ -609,26 +609,47 @@ class AppController {
                 break;
 
             case 'NEW_QUESTION':
+                console.log('Received NEW_QUESTION:', msg.payload);
                 const question = msg.payload;
-                document.getElementById('math-question').textContent = question.text;
-                document.getElementById('math-answer').value = '';
-                document.getElementById('math-answer').focus();
-                document.getElementById('answer-feedback').textContent = '';
+                const questionEl = document.getElementById('math-question');
+                const answerEl = document.getElementById('math-answer');
+                const feedbackEl = document.getElementById('answer-feedback');
+
+                if (questionEl && question && question.text) {
+                    questionEl.textContent = question.text + ' = ?';
+                    console.log('Question displayed:', question.text);
+                } else {
+                    console.error('Failed to display question', { questionEl, question });
+                }
+
+                if (answerEl) {
+                    answerEl.value = '';
+                    answerEl.focus();
+                }
+
+                if (feedbackEl) {
+                    feedbackEl.textContent = '';
+                }
                 break;
 
             case 'ANSWER_RESULT':
+                console.log('Received ANSWER_RESULT:', msg.payload);
                 const feedback = document.getElementById('answer-feedback');
-                if (msg.payload.correct) {
-                    feedback.textContent = '✅ Correct!';
-                    feedback.style.color = '#2ECC71';
+                if (feedback) {
+                    if (msg.payload.correct) {
+                        feedback.innerHTML = '<strong style="font-size:1.5rem;">✅ CORRECT!</strong>';
+                        feedback.style.color = '#2ECC71';
+                    } else {
+                        feedback.innerHTML = '<strong style="font-size:1.5rem;">❌ WRONG</strong>';
+                        feedback.style.color = '#E74C3C';
+                    }
+                    // Clear feedback after 2 seconds (longer for visibility)
+                    setTimeout(() => {
+                        feedback.textContent = '';
+                    }, 2000);
                 } else {
-                    feedback.textContent = '❌ Wrong';
-                    feedback.style.color = '#E74C3C';
+                    console.error('Feedback element not found');
                 }
-                // Clear feedback after 1 second
-                setTimeout(() => {
-                    feedback.textContent = '';
-                }, 1000);
                 break;
 
             case 'SCORE_UPDATE':

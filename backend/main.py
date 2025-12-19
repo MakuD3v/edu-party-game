@@ -134,6 +134,9 @@ async def run_game_1(lobby):
     
     # Send first question to all active players
     question = lobby.generate_math_question()
+    print(f"[GAME1] Generated question: {question}")
+    print(f"[GAME1] Active players: {lobby.active_players}")
+    
     for player_id in lobby.active_players:
         if player_id in lobby.players:
             player = lobby.players[player_id]
@@ -142,7 +145,9 @@ async def run_game_1(lobby):
                     "type": "NEW_QUESTION",
                     "payload": question
                 })
-            except Exception:
+                print(f"[GAME1] Sent question to {player.username}")
+            except Exception as e:
+                print(f"[GAME1] Failed to send question to {player.username}: {e}")
                 pass
     
     # Wait for 20 seconds
