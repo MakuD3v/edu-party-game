@@ -38,7 +38,8 @@ async def get_index():
 # Mock User Database (In-Memory for this lesson)
 MOCK_DB = {
     "student": {"password": "123", "color": "#E74C3C", "shape": ShapeEnum.SQUARE},
-    "teacher": {"password": "admin", "color": "#F1C40F", "shape": ShapeEnum.TRIANGLE}
+    "teacher": {"password": "admin", "color": "#F1C40F", "shape": ShapeEnum.TRIANGLE},
+    "maku": {"password": "123", "color": "#9B59B6", "shape": ShapeEnum.SQUARE}
 }
 
 # --- REST Endpoints (Stateless) ---
