@@ -528,7 +528,7 @@ class AppController {
 
     // === TUTORIAL & COUNTDOWN METHODS ===
 
-    showTutorial(game Number) {
+    showTutorial(gameNumber) {
         const tutorials = {
             1: {
                 title: "🧮 MATH QUIZ",
