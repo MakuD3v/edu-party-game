@@ -342,12 +342,14 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         await websocket.send_json({"type": "ERROR", "msg": "Not all players are ready"})
                         continue
                 else:
-                    # Test mode: Force all players to be ready
+                    # Test mode: Force all players to be ready BEFORE starting tournament
+                    print(f"[TEST_MODE] Forcing all players to ready status")
                     for p in lobby.players.values():
                         p.is_ready = True
                 
-                # Start tournament
+                # Start tournament (after players are set to ready)
                 lobby.start_tournament()
+                print(f"[GAME1] Tournament started with {len(lobby.active_players)} active players")
                 
                 # Broadcast game start to all players
                 await lobby.broadcast({
