@@ -525,6 +525,77 @@ class AppController {
         }
     }
 
+
+    // === TUTORIAL & COUNTDOWN METHODS ===
+
+    showTutorial(game Number) {
+        const tutorials = {
+            1: {
+                title: "🧮 MATH QUIZ",
+                content: `Answer as many math problems as you can in <strong>20 seconds</strong>!<br><br>
+                         Type your answer and hit <strong>SUBMIT</strong> or press <strong>ENTER</strong>.<br><br>
+                         Top half advance to the next round! 🏆`
+            },
+            2: {
+                title: "⌨️ SPEED TYPING",
+                content: `Type the words shown on screen as fast as possible!<br><br>
+                         Press <strong>ENTER</strong> after each word.<br><br>
+                         You have <strong>60 seconds</strong>. Highest score wins! ⚡`
+            },
+            3: {
+                title: "🧩 MAZE CHALLENGE",
+                content: `Navigate the maze and solve code puzzles at checkpoints!<br><br>
+                         Use <strong>Arrow Keys</strong> to move.<br><br>
+                         <strong>FIRST</strong> player to reach the end wins the TOURNAMENT! 🎉`
+            }
+        };
+
+        const tutorial = tutorials[gameNumber];
+        if (!tutorial) return;
+
+        document.getElementById('tutorial-title').textContent = tutorial.title;
+        document.getElementById('tutorial-content').innerHTML = tutorial.content;
+        document.getElementById('tutorial-modal').classList.remove('hidden');
+
+        // Auto-dismiss countdown (5 seconds)
+        let secondsLeft = 5;
+        const countdownEl = document.getElementById('tutorial-countdown');
+        countdownEl.textContent = secondsLeft;
+
+        const interval = setInterval(() => {
+            secondsLeft--;
+            countdownEl.textContent = secondsLeft;
+
+            if (secondsLeft <= 0) {
+                clearInterval(interval);
+                document.getElementById('tutorial-modal').classList.add('hidden');
+                // After tutorial, show countdown
+                this.showCountdown().then(() => {
+                    // Countdown complete - game will start via backend event
+                    console.log('Countdown complete, waiting for game start');
+                });
+            }
+        }, 1000);
+    }
+
+    async showCountdown() {
+        const overlay = document.getElementById('countdown-overlay');
+        const numberEl = document.getElementById('countdown-number');
+
+        overlay.classList.remove('hidden');
+
+        for (let i = 3; i > 0; i--) {
+            numberEl.textContent = i;
+            numberEl.style.animation = 'none';
+            // Force reflow to restart animation
+            void numberEl.offsetWidth;
+            numberEl.style.animation = 'countdownPulse 1s ease-in-out';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        overlay.classList.add('hidden');
+    }
+
     handleServerEvent(msg) {
         console.log('[Event]', msg);
 
@@ -603,15 +674,30 @@ class AppController {
             // === GAME EVENTS ===
             case 'GAME_1_START':
                 console.log('GAME_1_START received:', msg.payload);
-                this.ui.showScreen('game1');
+
+                // Show tutorial first (it will auto-dismiss and trigger countdown)
+                this.showTutorial(1);
+
+                // Store game state for after countdown
                 this.state.gameTimer = msg.payload.duration;
-                // Set initial timer display
-                const timerEl = document.getElementById('game-timer');
-                if (timerEl) {
-                    timerEl.textContent = this.state.gameTimer;
-                }
-                this.startGameTimer();
-                console.log('Waiting for NEW_QUESTION event...');
+                this.state.pendingGameStart = () => {
+                    this.ui.showScreen('game1');
+                    // Set initial timer display
+                    const timerEl = document.getElementById('game-timer');
+                    if (timerEl) {
+                        timerEl.textContent = this.state.gameTimer;
+                    }
+                    this.startGameTimer();
+                    console.log('Game 1 started after tutorial + countdown');
+                };
+
+                // After countdown (triggered by tutorial), start the game
+                setTimeout(() => {
+                    if (this.state.pendingGameStart) {
+                        this.state.pendingGameStart();
+                        this.state.pendingGameStart = null;
+                    }
+                }, 8000); // 5s tutorial + 3s countdown
                 break;
 
             case 'NEW_QUESTION':

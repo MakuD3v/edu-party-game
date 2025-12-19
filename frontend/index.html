@@ -168,6 +168,42 @@
         </div>
     </div>
 
+    <!-- TUTORIAL MODAL -->
+    <div id="tutorial-modal" class="modal-overlay hidden">
+        <div class="panel tutorial-panel" style="max-width:600px; text-align:center;">
+            <h1 id="tutorial-title" style="color:var(--school-bus-yellow);">📚 GAME TUTORIAL</h1>
+            <div class="chalkboard-inset" style="padding:30px; margin:20px 0;">
+                <div id="tutorial-content" style="font-size:1.2rem; line-height:1.8;">
+                    <!-- Dynamic tutorial content -->
+                </div>
+            </div>
+            <p style="color:#aaa; font-size:0.9rem;">Game starts in <span id="tutorial-countdown">5</span> seconds...
+            </p>
+        </div>
+    </div>
+
+    <!-- COUNTDOWN OVERLAY -->
+    <div id="countdown-overlay" class="hidden" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    ">
+        <div id="countdown-number" style="
+            font-size: 15rem;
+            font-weight: bold;
+            color: var(--school-bus-yellow);
+            text-shadow: 0 0 40px rgba(243,156,18,0.5);
+            animation: countdownPulse 1s ease-in-out;
+        ">3</div>
+    </div>
+
     <!-- MODAL: PROFILE -->
     <div id="modal-profile" class="modal-overlay hidden">
         <div class="panel">
