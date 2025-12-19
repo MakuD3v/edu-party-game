@@ -236,6 +236,9 @@ async def run_game_3(lobby):
     """Run Game 3 (Maze Challenge). Race to finish!"""
     lobby.init_maze_state()
     
+    # Wait for tutorial + countdown to finish (5 sec tutorial + 3 sec countdown = 8 seconds)
+    await asyncio.sleep(8)
+    
     # Send maze layout to all
     maze_layout = lobby.generate_maze()
     await lobby.broadcast({
@@ -247,12 +250,17 @@ async def run_game_3(lobby):
         }
     })
     
+    print(f"[GAME3] Sent MAZE_START with {len(lobby.maze_state)} players")
+    
     # Game Loop checks for winner every second
     game_active = True
     ticks = 0
     winner = None
     
-    while game_active and ticks < 90:
+    # Adjust timing to account for tutorial/countdown (90 - 8 = 82 seconds)
+    max_ticks = 82
+    
+    while game_active and ticks < max_ticks:
         await asyncio.sleep(0.5)
         ticks += 0.5
         
