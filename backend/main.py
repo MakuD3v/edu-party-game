@@ -1,5 +1,5 @@
 """
-FastAPI WebSocket server with user authentication and lobby management."""
+FastAPI WebSocket server with user authentication and lobby management.
 main.py
 The Application Entry Point.
 Responsible for routing and HTTP/WebSocket separation.
@@ -63,7 +63,7 @@ async def login(payload: dict):
 
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
-    """Returns a real-time list of active lobbies."""
+    """Returns a real-time list of active lobbies.""
     return manager.get_all_summaries()
 
 # --- WebSocket Endpoint (Stateful) ---
