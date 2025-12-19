@@ -13,7 +13,10 @@ class UIManager {
         this.screens = {
             auth: document.getElementById('screen-auth'),
             home: document.getElementById('screen-home'),
-            lobby: document.getElementById('screen-lobby')
+            lobby: document.getElementById('screen-lobby'),
+            game1: document.getElementById('screen-game1'),
+            intermission: document.getElementById('screen-intermission'),
+            spectator: document.getElementById('screen-spectator')
         };
         this.badge = document.getElementById('profile-badge');
         this.modal = document.getElementById('modal-profile');
