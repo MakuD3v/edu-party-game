@@ -48,3 +48,9 @@ class CreateLobbyRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     color: str
     shape: ShapeEnum
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    color: str
+    shape: ShapeEnum

@@ -12,7 +12,7 @@ from typing import List
 
 from .models import (
     AuthResponse, CreateLobbyRequest, PlayerState, 
-    LobbySummary, ShapeEnum
+    LobbySummary, ShapeEnum, RegisterRequest
 )
 from .logic import manager
 
@@ -63,6 +63,36 @@ async def login(payload: dict):
         username=username,
         color=user_data["color"],
         shape=user_data["shape"],
+        is_ready=False,
+        is_host=False
+    )
+    
+    return AuthResponse(token=username, username=username, state=dummy_state)
+
+@app.post("/api/register", response_model=AuthResponse)
+async def register(payload: RegisterRequest):
+    """
+    Registers a new user and returns their profile state.
+    """
+    username = payload.username
+    
+    # Check if username already exists
+    if username in MOCK_DB:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Add new user to database
+    MOCK_DB[username] = {
+        "password": payload.password,
+        "color": payload.color,
+        "shape": payload.shape
+    }
+    
+    # Return auth response (auto-login after registration)
+    dummy_state = PlayerState(
+        id="pending",
+        username=username,
+        color=payload.color,
+        shape=payload.shape,
         is_ready=False,
         is_host=False
     )

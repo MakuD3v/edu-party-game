@@ -135,6 +135,19 @@ class NetworkService {
         return await res.json();
     }
 
+    async register(username, password, color, shape) {
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, color, shape })
+        });
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.detail || 'Registration Failed');
+        }
+        return await res.json();
+    }
+
     async getLobbies() {
         const res = await fetch('/api/lobbies');
         return await res.json();
@@ -175,7 +188,8 @@ class AppController {
         this.net = new NetworkService();
         this.state = {
             user: null, // {username, color, shape}
-            connected: false
+            connected: false,
+            isRegisterMode: false // Track auth mode
         };
 
         // Bind UI Events
@@ -186,17 +200,60 @@ class AppController {
     }
 
     bindEvents() {
-        // Auth
+        // Auth Mode Toggle
+        document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.state.isRegisterMode = !this.state.isRegisterMode;
+
+            const registerFields = document.getElementById('register-fields');
+            const modeLabel = document.getElementById('auth-mode-label');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const toggleLink = document.getElementById('toggle-auth-mode');
+
+            if (this.state.isRegisterMode) {
+                registerFields.classList.remove('hidden');
+                modeLabel.textContent = 'Create Your Student ID';
+                submitBtn.textContent = 'REGISTER';
+                toggleLink.textContent = 'Already have an account? Sign in';
+            } else {
+                registerFields.classList.add('hidden');
+                modeLabel.textContent = 'Please Sign In to Class';
+                submitBtn.textContent = 'ENTER';
+                toggleLink.textContent = 'Need access? Register here';
+            }
+        });
+
+        // Auth Form Submit
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const u = document.getElementById('auth-username').value;
             const p = document.getElementById('auth-password').value;
+
             try {
-                const data = await this.net.login(u, p);
+                let data;
+                if (this.state.isRegisterMode) {
+                    // Registration mode
+                    const colorEl = document.querySelector('#register-fields .color-dot.selected');
+                    const color = colorEl ? colorEl.getAttribute('data-color') : '#9B59B6';
+                    const shape = document.getElementById('auth-shape').value;
+
+                    data = await this.net.register(u, p, color, shape);
+                } else {
+                    // Login mode
+                    data = await this.net.login(u, p);
+                }
                 this.handleLoginSuccess(data);
             } catch (err) {
                 document.getElementById('auth-error').textContent = err.message;
             }
+        });
+
+        // Color selection for registration
+        document.querySelectorAll('#register-fields .color-dot').forEach(d => {
+            d.onclick = () => {
+                document.querySelectorAll('#register-fields .color-dot').forEach(x => x.classList.remove('selected'));
+                d.classList.add('selected');
+            };
         });
 
         // Dashboard

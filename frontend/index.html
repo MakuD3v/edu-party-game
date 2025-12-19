@@ -22,15 +22,35 @@
         <div class="panel chalkboard-inset">
             <h1 style="color:var(--school-bus-yellow); font-size: 3rem;">EDU PARTY</h1>
             <h3>Educational Mayhem Edition</h3>
-            <p>Please Sign In to Class</p>
+            <p id="auth-mode-label">Please Sign In to Class</p>
 
             <form id="auth-form">
                 <input type="text" id="auth-username" placeholder="Student Name" required>
                 <input type="password" id="auth-password" placeholder="Password" required>
+
+                <!-- Registration-only fields (hidden by default) -->
+                <div id="register-fields" class="hidden">
+                    <div class="color-grid" style="margin: 15px 0;">
+                        <div class="color-dot" style="background:#E74C3C" data-color="#E74C3C"></div>
+                        <div class="color-dot" style="background:#3498DB" data-color="#3498DB"></div>
+                        <div class="color-dot" style="background:#2ECC71" data-color="#2ECC71"></div>
+                        <div class="color-dot" style="background:#F1C40F" data-color="#F1C40F"></div>
+                        <div class="color-dot selected" style="background:#9B59B6" data-color="#9B59B6"></div>
+                    </div>
+                    <select id="auth-shape" style="padding:8px; font-size:1rem; width:100%; margin:10px 0;">
+                        <option value="circle">Circle</option>
+                        <option value="square" selected>Square</option>
+                        <option value="triangle">Triangle</option>
+                    </select>
+                </div>
+
                 <br><br>
-                <button type="submit" class="btn-primary">ENTER</button>
+                <button type="submit" class="btn-primary" id="auth-submit-btn">ENTER</button>
             </form>
             <p id="auth-error" style="color:var(--danger-pink)"></p>
+            <br>
+            <a href="#" id="toggle-auth-mode" style="color:var(--chalk-white); font-size:0.9rem;">Need access? Register
+                here</a>
         </div>
     </div>
 
