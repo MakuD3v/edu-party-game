@@ -216,7 +216,9 @@ class AppController {
             isRegisterMode: false, // Track auth mode
             isReady: false, // Track player ready state
             gameTimer: 0, // Game countdown timer
-            timerInterval: null // Timer interval ID
+            timerInterval: null, // Timer interval ID
+            typingWords: [], // Game 2: List of words to type
+            currentWordIndex: 0 // Game 2: Current word index
         };
 
         // Bind UI Events
@@ -701,7 +703,14 @@ class AppController {
     }
 
     startGameTimer() {
-        const timerEl = document.getElementById('game-timer');
+        // Determine which timer element to use based on current game
+        const timerElId = this.state.currentGame === 2 ? 'game2-timer' : 'game-timer';
+        const timerEl = document.getElementById(timerElId);
+
+        if (!timerEl) {
+            console.error(`Timer element ${timerElId} not found`);
+            return;
+        }
 
         this.state.timerInterval = setInterval(() => {
             this.state.gameTimer--;
@@ -1037,6 +1046,77 @@ class AppController {
                     }, 2000);
                 } else {
                     console.error('Feedback element not found');
+                }
+                break;
+
+            // === GAME 2 EVENTS ===
+
+            case 'NEW_WORDS':
+                console.log('Received NEW_WORDS:', msg.payload);
+                this.state.typingWords = msg.payload.words || [];
+                this.state.currentWordIndex = 0;
+
+                // Display first word
+                if (this.state.typingWords.length > 0) {
+                    const wordDisplay = document.getElementById('word-display');
+                    const nextWordDisplay = document.getElementById('next-word-display');
+                    const typingInput = document.getElementById('typing-input');
+
+                    if (wordDisplay) {
+                        wordDisplay.textContent = this.state.typingWords[0];
+                    }
+                    if (nextWordDisplay && this.state.typingWords.length > 1) {
+                        nextWordDisplay.textContent = `Next: ${this.state.typingWords[1]}`;
+                    }
+                    if (typingInput) {
+                        typingInput.value = '';
+                        typingInput.focus();
+                    }
+                }
+                break;
+
+            case 'WORD_RESULT':
+                const wordResult = msg.payload;
+                const typingInput = document.getElementById('typing-input');
+
+                if (wordResult.correct) {
+                    // Move to next word
+                    this.state.currentWordIndex++;
+
+                    if (this.state.currentWordIndex < this.state.typingWords.length) {
+                        const wordDisplay = document.getElementById('word-display');
+                        const nextWordDisplay = document.getElementById('next-word-display');
+
+                        if (wordDisplay) {
+                            wordDisplay.textContent = this.state.typingWords[this.state.currentWordIndex];
+                        }
+                        if (nextWordDisplay && this.state.currentWordIndex + 1 < this.state.typingWords.length) {
+                            nextWordDisplay.textContent = `Next: ${this.state.typingWords[this.state.currentWordIndex + 1]}`;
+                        } else if (nextWordDisplay) {
+                            nextWordDisplay.textContent = '';
+                        }
+                    } else {
+                        // Finished all words
+                        const wordDisplay = document.getElementById('word-display');
+                        if (wordDisplay) wordDisplay.textContent = 'FINISHED!';
+                    }
+
+                    // Clear input
+                    if (typingInput) {
+                        typingInput.value = '';
+                        typingInput.style.borderColor = '#2ECC71'; // Green flash
+                        setTimeout(() => {
+                            typingInput.style.borderColor = '';
+                        }, 300);
+                    }
+                } else {
+                    // Wrong word - flash red
+                    if (typingInput) {
+                        typingInput.style.borderColor = '#E74C3C';
+                        setTimeout(() => {
+                            typingInput.style.borderColor = '';
+                        }, 300);
+                    }
                 }
                 break;
 
