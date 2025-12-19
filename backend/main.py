@@ -195,6 +195,9 @@ async def run_game_1(lobby):
 async def run_game_2(lobby):
     """Run Game 2 (Speed Typing) for 60 seconds."""
     
+    # Wait for tutorial + countdown to finish (5 sec tutorial + 3 sec countdown = 8 seconds)
+    await asyncio.sleep(8)
+    
     # Generate common words for everyone
     words = lobby.generate_typing_words(100)
     
@@ -207,11 +210,13 @@ async def run_game_2(lobby):
                     "type": "NEW_WORDS",
                     "payload": {"words": words}
                 })
-            except Exception:
+                print(f"[GAME2] Sent {len(words)} words to {player.username}")
+            except Exception as e:
+                print(f"[GAME2] Failed to send words to {player.username}: {e}")
                 pass
                 
-    # Wait for 60 seconds
-    await asyncio.sleep(60)
+    # Wait for remaining game time (60 - 8 = 52 seconds)
+    await asyncio.sleep(52)
     
     # Game Over - Calculate results
     leaderboard = lobby.get_leaderboard()
