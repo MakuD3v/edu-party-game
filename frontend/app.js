@@ -15,6 +15,7 @@ class UIManager {
             home: document.getElementById('screen-home'),
             lobby: document.getElementById('screen-lobby'),
             game1: document.getElementById('screen-game1'),
+            game2: document.getElementById('screen-game2'),
             intermission: document.getElementById('screen-intermission'),
             spectator: document.getElementById('screen-spectator')
         };

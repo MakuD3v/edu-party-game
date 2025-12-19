@@ -182,14 +182,48 @@ async def run_game_1(lobby):
                 'shape': p.shape.value
             })
     
-    # Broadcast round end results
+    # Broadcast round end
     await lobby.broadcast({
         "type": "ROUND_END",
         "payload": {
-            "game": 1,
             "advancing": advancing_players,
             "eliminated": eliminated_players,
-            "next_game": 2 if len(advancing) > 1 else None
+            "next_game": "Game 2: Speed Typing" if lobby.active_players else None
+        }
+    })
+
+async def run_game_2(lobby):
+    """Run Game 2 (Speed Typing) for 60 seconds."""
+    
+    # Generate common words for everyone
+    words = lobby.generate_typing_words(100)
+    
+    # Broadcast words to all active players
+    for player_id in lobby.active_players:
+        if player_id in lobby.players:
+            player = lobby.players[player_id]
+            try:
+                await player.websocket.send_json({
+                    "type": "NEW_WORDS",
+                    "payload": {"words": words}
+                })
+            except Exception:
+                pass
+                
+    # Wait for 60 seconds
+    await asyncio.sleep(60)
+    
+    # Game Over - Calculate results
+    leaderboard = lobby.get_leaderboard()
+    advancing, eliminated = lobby.advance_players()
+    
+    # Broadcast round end
+    await lobby.broadcast({
+        "type": "ROUND_END",
+        "payload": {
+            "advancing": advancing,
+            "eliminated": eliminated,
+            "next_game": "Game 3: Maze Challenge" if lobby.active_players else None
         }
     })
 
@@ -348,21 +382,82 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     for p in lobby.players.values():
                         p.is_ready = True
                 
-                # Start tournament (after players are set to ready)
-                lobby.start_tournament()
-                print(f"[GAME1] Tournament started with {len(lobby.active_players)} active players")
+                # TEMP: Simple progression for testing
+                # If game was 1, move to 2. If 0, start 1.
+                if lobby.current_game == 0 or lobby.current_game == 3:
+                    next_game = 1
+                elif lobby.current_game == 1:
+                    next_game = 2
+                else:
+                    next_game = 3
                 
-                # Broadcast game start to all players
-                await lobby.broadcast({
-                    "type": "GAME_1_START",
-                    "payload": {
-                        "duration": 20,
-                        "active_players": lobby.active_players
-                    }
-                })
+                lobby.current_game = next_game
                 
-                # Start sending questions for 20 seconds
-                asyncio.create_task(run_game_1(lobby))
+                if next_game == 1:
+                    lobby.start_tournament() # Reset if starting over
+                    print(f"[GAME1] Tournament started with {len(lobby.active_players)} active players")
+                    await lobby.broadcast({
+                        "type": "GAME_1_START",
+                        "payload": {"duration": 20}
+                    })
+                    asyncio.create_task(run_game_1(lobby))
+                    
+                elif next_game == 2:
+                    # Start Game 2
+                    print(f"[GAME2] Starting Typing Game with {len(lobby.active_players)} players")
+                    # Reset scores for new round? Or keep cumulative? 
+                    # For tournament, usually reset scores per game or keep cumulative. 
+                    # Let's reset for this game mode logic to match Phase 1 logic
+                    lobby.player_scores = {pid: 0 for pid in lobby.active_players}
+                    
+                    await lobby.broadcast({
+                        "type": "GAME_2_START",
+                        "payload": {"duration": 60}
+                    })
+                    asyncio.create_task(run_game_2(lobby))
+
+            # --- SUBMIT ANSWER (GAME 1) ---
+            elif event_type == "SUBMIT_ANSWER":
+                if lobby and lobby.current_game == 1:
+                    answer = int(data.get("answer"))
+                    is_correct = lobby.check_answer(player.id, answer)
+                    
+                    # Notify player
+                    await websocket.send_json({
+                        "type": "ANSWER_RESULT",
+                        "payload": {"correct": is_correct}
+                    })
+                    
+                    # Send new question
+                    new_q = lobby.generate_math_question()
+                    await websocket.send_json({
+                        "type": "NEW_QUESTION",
+                        "payload": new_q
+                    })
+                    
+                    # Broadcast scores
+                    await lobby.broadcast({
+                        "type": "SCORE_UPDATE",
+                        "payload": lobby.get_leaderboard()
+                    })
+
+            # --- SUBMIT WORD (GAME 2) ---
+            elif event_type == "SUBMIT_WORD":
+                if lobby and lobby.current_game == 2:
+                    current_word = data.get("current_word")
+                    typed_word = data.get("typed_word")
+                    
+                    if lobby.check_typed_word(player.id, current_word, typed_word):
+                        # Correct
+                        await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": True}})
+                        # Broadcast score update
+                        await lobby.broadcast({
+                            "type": "SCORE_UPDATE",
+                            "payload": lobby.get_leaderboard()
+                        })
+                    else:
+                        # Wrong
+                        await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": False}})
             
             # --- SUBMIT ANSWER ---
             elif event_type == "SUBMIT_ANSWER":

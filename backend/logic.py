@@ -149,16 +149,38 @@ class Lobby:
         return self.current_question
     
     def check_answer(self, player_id: str, answer: int) -> bool:
-        """Validate answer and update score if correct."""
-        if not self.current_question or player_id not in self.active_players:
+        """Check math answer for Game 1."""
+        if not self.current_question:
             return False
         
-        is_correct = answer == self.current_question['answer']
-        if is_correct and player_id in self.player_scores:
-            self.player_scores[player_id] += 1
+        correct = (self.current_question["answer"] == answer)
+        if correct:
+            self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
+        return correct
         
-        return is_correct
-    
+    # --- GAME 2: SPEED TYPING ---
+    def generate_typing_words(self, count=50) -> List[str]:
+        """Generate a list of random words for typing game."""
+        words = [
+            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape",
+            "house", "island", "jungle", "kite", "lemon", "mango", "nest",
+            "ocean", "piano", "queen", "river", "sun", "tiger", "umbrella",
+            "violet", "water", "xylophone", "yellow", "zebra", "cloud",
+            "dream", "energy", "flower", "garden", "happy", "image", "juice",
+            "king", "lion", "mouse", "night", "orange", "pencil", "quiet",
+            "radio", "snake", "tree", "unicorn", "vision", "whale", "xray"
+        ]
+        import random
+        return [random.choice(words) for _ in range(count)]
+
+    def check_typed_word(self, player_id: str, current_word: str, typed_word: str) -> bool:
+        """Check typed word for Game 2."""
+        correct = (current_word.lower().strip() == typed_word.lower().strip())
+        if correct:
+            # +1 score for each correct word
+            self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
+        return correct
+
     def get_leaderboard(self) -> List[Dict]:
         """Return sorted leaderboard with player info."""
         leaderboard = []
