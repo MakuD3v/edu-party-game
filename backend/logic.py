@@ -69,9 +69,12 @@ class Lobby:
         self.game_history: List[int] = [] # Track played games
         self.available_games: List[int] = [1, 2, 3]
 
+        # Immediately add host
+        self.add_player(host)
+        host.is_host = True
+
     def select_next_game(self) -> int:
         """Select a random game avoiding repeats from last 2 rounds."""
-        import random
         
         # Check if history prevents options
         if len(self.game_history) >= 2:
@@ -90,11 +93,6 @@ class Lobby:
         selected = random.choice(possible)
         self.game_history.append(selected)
         return selected
-
-        
-        # Immediately add host
-        self.add_player(host)
-        host.is_host = True
 
     @property
     def is_full(self) -> bool:
