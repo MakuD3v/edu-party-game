@@ -108,6 +108,14 @@ class UIManager {
             const nameDiv = document.createElement('div');
             nameDiv.textContent = p.username;
 
+            // Ready indicator (raised hand emoji)
+            if (p.is_ready) {
+                const readyDiv = document.createElement('div');
+                readyDiv.textContent = '🙋';
+                readyDiv.style.fontSize = '1.5rem';
+                card.appendChild(readyDiv);
+            }
+
             card.appendChild(iconDiv);
             card.appendChild(nameDiv);
             container.appendChild(card);
@@ -292,10 +300,16 @@ class AppController {
         });
 
         // Lobby
+        document.getElementById('btn-ready').addEventListener('click', () => {
+            this.net.send('TOGGLE_READY');
+        });
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            this.net.send('START_GAME');
+        });
+
         document.getElementById('btn-leave').addEventListener('click', () => {
-            // We simplify: Reload page or just visual switch. 
-            // For prototype, we reload to clear state cleanly.
-            window.location.reload();
+            this.net.send('LEAVE_LOBBY');
         });
     }
 
@@ -331,10 +345,32 @@ class AppController {
                 this.ui.showScreen('lobby');
                 document.getElementById('lobby-title-id').textContent = '#' + msg.payload.id;
                 document.getElementById('lobby-host-name').textContent = 'Host: ' + msg.payload.host_name;
+
+                // Show start button if user is host
+                const startBtn = document.getElementById('btn-start');
+                if (msg.payload.host_name === this.state.user.username) {
+                    startBtn.style.display = 'inline-block';
+                } else {
+                    startBtn.style.display = 'none';
+                }
                 break;
 
             case 'ROSTER_UPDATE':
                 this.ui.renderRoster(msg.payload);
+
+                // Update start button state for host
+                const startButton = document.getElementById('btn-start');
+                if (startButton.style.display !== 'none') {
+                    // Check if all players are ready
+                    const allReady = msg.payload.every(p => p.is_ready);
+                    const hasPlayers = msg.payload.length > 1;
+                    startButton.disabled = !(allReady && hasPlayers);
+                }
+                break;
+
+            case 'LOBBY_LEFT':
+                this.ui.showScreen('home');
+                this.refreshLobbyList();
                 break;
 
             case 'PROFILE_ACK':
