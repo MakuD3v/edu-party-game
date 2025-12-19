@@ -227,6 +227,71 @@ async def run_game_2(lobby):
         }
     })
 
+async def run_game_3(lobby):
+    """Run Game 3 (Maze Challenge). Race to finish!"""
+    lobby.init_maze_state()
+    
+    # Send maze layout to all
+    maze_layout = lobby.generate_maze()
+    await lobby.broadcast({
+        "type": "MAZE_START",
+        "payload": {
+            "layout": maze_layout,
+            "duration": 90, # 1.5 mins max
+            "players": lobby.maze_state
+        }
+    })
+    
+    # Game Loop checks for winner every second
+    game_active = True
+    ticks = 0
+    winner = None
+    
+    while game_active and ticks < 90:
+        await asyncio.sleep(0.5)
+        ticks += 0.5
+        
+        # Check if anyone reached 20 (finish line)
+        for pid, pos in lobby.maze_state.items():
+            if pos >= 20:
+                winner = lobby.players.get(pid)
+                game_active = False
+                break
+                
+        # Broadcast positions periodically? 
+        # Actually positions are updated via MOVE actions in real-time
+        # But maybe sync every few seconds to be safe
+        if ticks % 2 == 0:
+             await lobby.broadcast({
+                "type": "MAZE_STATE",
+                "payload": lobby.maze_state
+            })
+            
+    # Game Over
+    if winner:
+        # Winner wins the WHOLE tournament
+        await lobby.broadcast({
+            "type": "TOURNAMENT_WINNER",
+            "payload": {
+                "winner": winner.username,
+                "winner_id": winner.id
+            }
+        })
+    else:
+        # Time up - whoever is furthest wins?
+        leaderboard = lobby.get_leaderboard()
+        if leaderboard:
+            top_player_id = leaderboard[0]["id"]
+            top_player = lobby.players.get(top_player_id)
+            await lobby.broadcast({
+                "type": "TOURNAMENT_WINNER",
+                "payload": {
+                    "winner": top_player.username,
+                    "winner_id": top_player.id,
+                    "reason": "Time Up - Furthest Progress"
+                }
+            })
+
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
     """Returns a real-time list of active lobbies."""
@@ -382,20 +447,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     for p in lobby.players.values():
                         p.is_ready = True
                 
-                # TEMP: Simple progression for testing
-                # If game was 1, move to 2. If 0, start 1.
-                if lobby.current_game == 0 or lobby.current_game == 3:
-                    next_game = 1
-                elif lobby.current_game == 1:
-                    next_game = 2
-                else:
-                    next_game = 3
+                # Select Random Game (Cycle)
+                # But for now, if we want to ensure we see all 3... 
+                # Let's use the randomizer we built!
+                next_game = lobby.select_next_game()
+                # next_game = 3 # Force Game 3 for testing if needed
                 
                 lobby.current_game = next_game
                 
                 if next_game == 1:
-                    lobby.start_tournament() # Reset if starting over
-                    print(f"[GAME1] Tournament started with {len(lobby.active_players)} active players")
+                    lobby.start_tournament() # Reset if starting tournament
+                    print(f"[GAME1] Starting Math Quiz")
                     await lobby.broadcast({
                         "type": "GAME_1_START",
                         "payload": {"duration": 20}
@@ -403,43 +465,40 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     asyncio.create_task(run_game_1(lobby))
                     
                 elif next_game == 2:
-                    # Start Game 2
-                    print(f"[GAME2] Starting Typing Game with {len(lobby.active_players)} players")
-                    # Reset scores for new round? Or keep cumulative? 
-                    # For tournament, usually reset scores per game or keep cumulative. 
-                    # Let's reset for this game mode logic to match Phase 1 logic
+                    print(f"[GAME2] Starting Typing Game")
                     lobby.player_scores = {pid: 0 for pid in lobby.active_players}
-                    
                     await lobby.broadcast({
                         "type": "GAME_2_START",
                         "payload": {"duration": 60}
                     })
                     asyncio.create_task(run_game_2(lobby))
+                    
+                elif next_game == 3:
+                    print(f"[GAME3] Starting Maze Challenge")
+                    await lobby.broadcast({
+                        "type": "GAME_3_START",
+                        "payload": {"duration": 90}
+                    })
+                    asyncio.create_task(run_game_3(lobby))
 
             # --- SUBMIT ANSWER (GAME 1) ---
             elif event_type == "SUBMIT_ANSWER":
                 if lobby and lobby.current_game == 1:
-                    answer = int(data.get("answer"))
-                    is_correct = lobby.check_answer(player.id, answer)
-                    
-                    # Notify player
-                    await websocket.send_json({
-                        "type": "ANSWER_RESULT",
-                        "payload": {"correct": is_correct}
-                    })
-                    
-                    # Send new question
-                    new_q = lobby.generate_math_question()
-                    await websocket.send_json({
-                        "type": "NEW_QUESTION",
-                        "payload": new_q
-                    })
-                    
-                    # Broadcast scores
-                    await lobby.broadcast({
-                        "type": "SCORE_UPDATE",
-                        "payload": lobby.get_leaderboard()
-                    })
+                    try:
+                        answer = int(data.get("answer"))
+                        is_correct = lobby.check_answer(player.id, answer)
+                        # Notify player
+                        await websocket.send_json({
+                            "type": "ANSWER_RESULT",
+                            "payload": {"correct": is_correct}
+                        })
+                        # Send new question
+                        new_q = lobby.generate_math_question()
+                        await websocket.send_json({"type": "NEW_QUESTION", "payload": new_q})
+                        # Broadcast scores
+                        await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
+                    except:
+                        pass
 
             # --- SUBMIT WORD (GAME 2) ---
             elif event_type == "SUBMIT_WORD":
@@ -448,16 +507,37 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     typed_word = data.get("typed_word")
                     
                     if lobby.check_typed_word(player.id, current_word, typed_word):
-                        # Correct
                         await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": True}})
-                        # Broadcast score update
-                        await lobby.broadcast({
-                            "type": "SCORE_UPDATE",
-                            "payload": lobby.get_leaderboard()
-                        })
+                        await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
                     else:
-                        # Wrong
                         await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": False}})
+
+            # --- MAZE ACTIONS (GAME 3) ---
+            elif event_type == "MAZE_MOVE":
+                if lobby and lobby.current_game == 3:
+                     direction = data.get("direction", "right")
+                     result = lobby.move_player_maze(player.id, direction)
+                     if result["moved"]:
+                         # Broadcast movement to everyone so they can animate
+                         await lobby.broadcast({
+                             "type": "PLAYER_MOVED",
+                             "payload": {
+                                 "player_id": player.id,
+                                 "new_pos": result["new_pos"],
+                                 "shape": result["shape"] if "shape" in result else None # Optimize payload?
+                             }
+                         })
+                         
+                         # Check if hit checkpoint
+                         if result.get("checkpoint"):
+                             await websocket.send_json({
+                                 "type": "MAZE_CHECKPOINT",
+                                 "payload": result["checkpoint"]
+                             })
+            
+            elif event_type == "MAZE_SOLVE":
+                # Validate checkpoint answer
+                 pass # Front-end can handle simple validation for MVP, or backend if robust
             
             # --- SUBMIT ANSWER ---
             elif event_type == "SUBMIT_ANSWER":

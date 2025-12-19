@@ -58,12 +58,39 @@ class Lobby:
         self.players: Dict[str, Player] = {}
         
         # Tournament State
-        self.current_game: int = 0  # 0=lobby, 1=math, 2=typing, 3=maze
-        self.active_players: List[str] = []  # Player IDs still competing
-        self.spectators: List[str] = []  # Eliminated player IDs
-        self.player_scores: Dict[str, int] = {}  # Current game scores
-        self.game_start_time: float = 0.0
-        self.current_question: Dict | None = None
+        self.active_players: List[str] = [] # Player IDs still competing
+        self.spectators: List[str] = [] # Eliminated player IDs
+        self.current_game: int = 0      # 0=None, 1=Math, 2=Typing, 3=Maze
+        self.game_round: int = 0
+        
+        # Game State
+        self.current_question: Dict = None
+        self.player_scores: Dict[str, int] = {} # player_id -> score
+        self.game_history: List[int] = [] # Track played games
+        self.available_games: List[int] = [1, 2, 3]
+
+    def select_next_game(self) -> int:
+        """Select a random game avoiding repeats from last 2 rounds."""
+        import random
+        
+        # Check if history prevents options
+        if len(self.game_history) >= 2:
+            excluded = set(self.game_history[-2:])
+        elif len(self.game_history) == 1:
+            excluded = {self.game_history[-1]}
+        else:
+            excluded = set()
+            
+        possible = [g for g in self.available_games if g not in excluded]
+        
+        # Fallback if all constrained (unlikely with 3 games and logic, but good safety)
+        if not possible:
+            possible = [g for g in self.available_games if g != self.game_history[-1]]
+            
+        selected = random.choice(possible)
+        self.game_history.append(selected)
+        return selected
+
         
         # Immediately add host
         self.add_player(host)
@@ -181,23 +208,93 @@ class Lobby:
             self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
         return correct
 
+    # --- GAME 3: MAZE CHALLENGE ---
+    def generate_maze(self) -> Dict:
+        """Generate a simple linear maze with checkpoints."""
+        # Simple linear track with 20 steps
+        # Checkpoints at steps 5, 10, 15
+        return {
+            "length": 20,
+            "checkpoints": {
+                5: {"question": "print('Hello')", "answer": "Simple Output"}, # Just a placeholder, we'll use simple puzzles
+                10: {"question": "2 * 4 + 2", "answer": "10"},
+                15: {"question": "len('party')", "answer": "5"}
+            }
+        }
+    
+    def init_maze_state(self):
+        """Initialize player positions for maze."""
+        # position = step number (0 to 20)
+        self.maze_state = {pid: 0 for pid in self.active_players}
+        
+    def move_player_maze(self, player_id: str, direction: str) -> Dict:
+        """
+        Move player in maze.
+        Returns {"moved": bool, "new_pos": int, "finished": bool, "checkpoint": dict/None}
+        """
+        if player_id not in self.maze_state:
+            return {"moved": False}
+            
+        current_pos = self.maze_state[player_id]
+        
+        # Simple linear movement for MVP (Right = +1, Left = -1)
+        # In a real 2D maze, we'd handle x/y. Here just progress.
+        if direction == "right":
+            new_pos = current_pos + 1
+        else:
+            return {"moved": False} # Can't go back? or just ignore other keys
+            
+        # Check boundary
+        if new_pos > 20:
+            new_pos = 20
+        
+        # Check if checkpoint at CURRENT position needs to be passed? 
+        # Actually logic is: if you are at 4 and want to go to 5 (checkpoint), you need to solve it FIRST?
+        # Or you land on 5, get frozen, solve, then can move to 6.
+        # implementation: Land on checkpoint -> receive puzzle -> solve -> unlock movement.
+        
+        checkpoints = {
+            5: {"q": "Fix: whiele True:", "a": "while True:"},
+            10: {"q": "5 + 3 * 2 = ?", "a": "11"},
+            15: {"q": "List uses [] or ()?", "a": "[]"}
+        }
+        
+        # If currently at a checkpoint, verify if we can move?
+        # Simplified: You move TO the checkpoint. Then you are stuck until you submit answer.
+        
+        self.maze_state[player_id] = new_pos
+        
+        return {
+            "moved": True,
+            "new_pos": new_pos,
+            "finished": (new_pos >= 20),
+            "checkpoint": checkpoints.get(new_pos)
+        }
+
     def get_leaderboard(self) -> List[Dict]:
         """Return sorted leaderboard with player info."""
         leaderboard = []
-        for pid in self.active_players:
-            if pid in self.players:
-                player = self.players[pid]
+        for pid, player in self.players.items():
+            if pid in self.active_players or pid in self.spectators:
+                # Score depends on game?
+                # Game 1 & 2: use player_scores
+                # Game 3: use maze_state (progress)
+                score = 0
+                if self.current_game == 3 and hasattr(self, 'maze_state'):
+                    score = self.maze_state.get(pid, 0)
+                else:
+                    score = self.player_scores.get(pid, 0)
+                    
                 leaderboard.append({
-                    'player_id': pid,
-                    'username': player.username,
-                    'score': self.player_scores.get(pid, 0),
-                    'color': player.color,
-                    'shape': player.shape.value
+                    "id": pid,
+                    "username": player.username,
+                    "color": player.color,
+                    "shape": player.shape.value, # Enum to value
+                    "score": score
                 })
         
-        # Sort by score descending
-        leaderboard.sort(key=lambda x: x['score'], reverse=True)
-        return leaderboard
+        # Sort desc by score
+        return sorted(leaderboard, key=lambda x: x["score"], reverse=True)
     
     def advance_players(self) -> tuple[List[str], List[str]]:
         """Calculate top 50% to advance, rest become spectators."""
