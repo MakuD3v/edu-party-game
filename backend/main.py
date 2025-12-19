@@ -10,11 +10,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 
-from models import (
+from .models import (
     AuthResponse, CreateLobbyRequest, PlayerState, 
     LobbySummary, ShapeEnum
 )
-from logic import manager
+from .logic import manager
 
 app = FastAPI(title="EDU PARTY: Educational Mayhem")
 
@@ -26,7 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+import os
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../frontend")), name="static")
 
 # Mock User Database (In-Memory for this lesson)
 MOCK_DB = {

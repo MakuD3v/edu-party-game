@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from fastapi import WebSocket
 
 # Import our Pydantic models for structure
-from models import PlayerData, LobbyData
+from .models import PlayerData, LobbyData
 
 class Player:
     """

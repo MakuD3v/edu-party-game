@@ -8,7 +8,7 @@ import asyncio
 from typing import Dict, List, Optional
 from fastapi import WebSocket
 
-from models import PlayerState, ShapeEnum, LobbySummary
+from .models import PlayerState, ShapeEnum, LobbySummary
 
 class Player:
     """
