@@ -951,6 +951,7 @@ class AppController {
 
                 // Store game state
                 this.state.gameTimer = msg.payload.duration;
+                this.state.currentGame = 1;
 
                 // Show tutorial first
                 this.showTutorial(1);
