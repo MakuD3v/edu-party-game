@@ -407,6 +407,35 @@ class AppController {
                 this.submitAnswer();
             }
         });
+
+        // Game 3 Maze Controls (Arrow Keys)
+        document.addEventListener('keydown', (e) => {
+            // Only handle if in Game 3
+            const game3Screen = document.getElementById('screen-game3');
+            if (game3Screen && game3Screen.classList.contains('active')) {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    this.net.send('MAZE_MOVE', { direction: 'right' });
+                }
+            }
+        });
+
+        // Game 3 Checkpoint Answer Submission
+        const checkpointSubmit = document.getElementById('btn-submit-checkpoint');
+        if (checkpointSubmit) {
+            checkpointSubmit.addEventListener('click', () => {
+                this.submitCheckpointAnswer();
+            });
+        }
+
+        const checkpointInput = document.getElementById('checkpoint-input');
+        if (checkpointInput) {
+            checkpointInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.submitCheckpointAnswer();
+                }
+            });
+        }
     }
 
     handleLoginSuccess(data) {
@@ -476,6 +505,172 @@ class AppController {
         const answer = document.getElementById('math-answer').value;
         if (answer) {
             this.net.send('SUBMIT_ANSWER', { answer });
+        }
+    }
+
+    // === GAME 3: MAZE CHALLENGE METHODS ===
+
+    initMazeGame(mazeData) {
+        this.state.mazeLayout = mazeData.layout;
+        this.state.mazePositions = mazeData.players || {};
+        this.state.currentCheckpoint = null;
+        this.state.checkpointLocked = false;
+
+        // Initialize canvas
+        const canvas = document.getElementById('maze-canvas');
+        if (!canvas) return;
+
+        // Set actual canvas dimensions
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        this.renderMaze();
+    }
+
+    renderMaze() {
+        const canvas = document.getElementById('maze-canvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw linear path (horizontal track)
+        const mazeLength = this.state.mazeLayout?.length || 20;
+        const stepWidth = width / (mazeLength + 1);
+        const centerY = height / 2;
+
+        // Draw track background
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, centerY - 40, width, 80);
+
+        // Draw checkpoints
+        const checkpoints = this.state.mazeLayout?.checkpoints || { 5: {}, 10: {}, 15: {} };
+        Object.keys(checkpoints).forEach(step => {
+            const x = stepWidth * (parseInt(step) + 0.5);
+
+            // Draw checkpoint marker
+            ctx.fillStyle = '#F39C12';
+            ctx.beginPath();
+            ctx.arc(x, centerY, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw checkpoint number
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔒', x, centerY + 5);
+        });
+
+        // Draw finish line
+        const finishX = stepWidth * (mazeLength + 0.5);
+        ctx.fillStyle = '#2ECC71';
+        ctx.fillRect(finishX - 3, centerY - 50, 6, 100);
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#2ECC71';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏁', finishX, centerY - 60);
+
+        // Draw players
+        if (this.state.mazePositions) {
+            Object.entries(this.state.mazePositions).forEach(([playerId, position]) => {
+                const player = this.getPlayerInfo(playerId);
+                if (!player) return;
+
+                const x = stepWidth * (position + 0.5);
+                const y = centerY;
+
+                // Draw player shape
+                ctx.fillStyle = player.color || '#9B59B6';
+
+                if (player.shape === 'circle') {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (player.shape === 'square') {
+                    ctx.fillRect(x - 20, y - 20, 40, 40);
+                } else if (player.shape === 'triangle') {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - 20);
+                    ctx.lineTo(x - 20, y + 20);
+                    ctx.lineTo(x + 20, y + 20);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Draw player name
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(player.username, x, y + 40);
+            });
+        }
+
+        // Draw step numbers
+        ctx.fillStyle = '#666';
+        ctx.font = '10px Arial';
+        for (let i = 0; i <= mazeLength; i += 5) {
+            const x = stepWidth * (i + 0.5);
+            ctx.fillText(i.toString(), x, centerY + 60);
+        }
+    }
+
+    getPlayerInfo(playerId) {
+        // Helper to get player info from lobby roster
+        if (this.state.currentLobbyRoster) {
+            return this.state.currentLobbyRoster.find(p => p.id === playerId);
+        }
+        return null;
+    }
+
+    showCheckpoint(checkpointData) {
+        if (!checkpointData) return;
+
+        this.state.currentCheckpoint = checkpointData;
+        this.state.checkpointLocked = true;
+
+        const popup = document.getElementById('checkpoint-popup');
+        const questionEl = document.getElementById('checkpoint-q');
+        const inputEl = document.getElementById('checkpoint-input');
+
+        if (popup && questionEl && inputEl) {
+            questionEl.textContent = checkpointData.q;
+            inputEl.value = '';
+            popup.classList.remove('hidden');
+            inputEl.focus();
+        }
+    }
+
+    submitCheckpointAnswer() {
+        const inputEl = document.getElementById('checkpoint-input');
+        const answer = inputEl.value.trim();
+
+        if (!this.state.currentCheckpoint || !answer) return;
+
+        // Simple client-side validation
+        const correctAnswer = this.state.currentCheckpoint.a;
+        const isCorrect = answer.toLowerCase() === correctAnswer.toLowerCase();
+
+        if (isCorrect) {
+            // Hide popup
+            const popup = document.getElementById('checkpoint-popup');
+            if (popup) popup.classList.add('hidden');
+
+            // Unlock movement
+            this.state.checkpointLocked = false;
+            this.state.currentCheckpoint = null;
+        } else {
+            // Show error feedback
+            const questionEl = document.getElementById('checkpoint-q');
+            if (questionEl) {
+                questionEl.style.color = '#E74C3C';
+                setTimeout(() => {
+                    questionEl.style.color = '';
+                }, 500);
+            }
         }
     }
 
@@ -699,6 +894,9 @@ class AppController {
             case 'ROSTER_UPDATE':
                 this.ui.renderRoster(msg.payload);
 
+                // Store roster for Game 3 player rendering
+                this.state.currentLobbyRoster = msg.payload;
+
                 // Update player's own ready state from roster
                 const currentPlayer = msg.payload.find(p => p.username === this.state.user.username);
                 if (currentPlayer) {
@@ -758,7 +956,7 @@ class AppController {
                 this.showTutorial(1);
                 break;
 
-            
+
             case 'GAME_2_START':
                 console.log('GAME_2_START received:', msg.payload);
                 this.state.gameTimer = msg.payload.duration;
@@ -771,7 +969,7 @@ class AppController {
                 this.state.gameTimer = msg.payload.duration;
                 this.state.currentGame = 3;
                 this.showTutorial(3);
-                break;case 'NEW_QUESTION':
+                break; case 'NEW_QUESTION':
                 console.log('Received NEW_QUESTION:', msg.payload);
                 const question = msg.payload;
                 const questionEl = document.getElementById('math-question');
@@ -822,6 +1020,40 @@ class AppController {
             case 'ROUND_END':
                 clearInterval(this.state.timerInterval);
                 this.showIntermission(msg.payload);
+                break;
+
+            // === GAME 3 EVENTS ===
+
+            case 'MAZE_START':
+                console.log('MAZE_START received:', msg.payload);
+                this.state.currentGame = 3;
+                this.initMazeGame(msg.payload);
+                break;
+
+            case 'PLAYER_MOVED':
+                // Another player moved, update their position
+                if (this.state.mazePositions) {
+                    this.state.mazePositions[msg.payload.player_id] = msg.payload.new_pos;
+                    this.renderMaze();
+                }
+                break;
+
+            case 'MAZE_CHECKPOINT':
+                // Show checkpoint puzzle
+                this.showCheckpoint(msg.payload);
+                break;
+
+            case 'MAZE_STATE':
+                // Periodic sync of all player positions
+                this.state.mazePositions = msg.payload;
+                this.renderMaze();
+                break;
+
+            case 'TOURNAMENT_WINNER':
+                // Game 3 tournament winner
+                clearInterval(this.state.timerInterval);
+                alert(`🏆 TOURNAMENT WINNER: ${msg.payload.winner}! 🏆`);
+                setTimeout(() => location.reload(), 3000);
                 break;
 
             case 'ERROR':

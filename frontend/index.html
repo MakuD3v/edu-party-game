@@ -175,23 +175,6 @@
                 Next game: <span id="next-game-name">...</span>
             </div>
         </div>
-
-        <!-- Controls Hint -->
-        <div style="text-align: center; margin-top: 10px; color: #888;">
-            Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
-        </div>
-
-        <!-- Checkpoint Popup Overlay -->
-        <div id="checkpoint-popup" class="modal-overlay hidden"
-            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50;">
-            <div class="panel" style="width: 400px; text-align: center;">
-                <h2 style="color: var(--school-bus-yellow);">🔒 CHECKPOINT!</h2>
-                <p id="checkpoint-q" style="font-size: 1.5rem; margin: 20px 0;">Question?</p>
-                <input type="text" id="checkpoint-input" class="input-field" placeholder="Answer...">
-                <button id="btn-submit-checkpoint" class="btn-primary" style="margin-top: 10px;">UNLOCK</button>
-            </div>
-        </div>
-    </div>
     </div>
 
     <!-- GAME 3 SCREEN: MAZE CHALLENGE -->
@@ -207,6 +190,17 @@
             <!-- Controls Hint -->
             <div style="text-align: center; margin-top: 10px; color: #888;">
                 Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
+            </div>
+        </div>
+
+        <!-- Checkpoint Popup Overlay -->
+        <div id="checkpoint-popup" class="modal-overlay hidden"
+            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50;">
+            <div class="panel" style="width: 400px; text-align: center;">
+                <h2 style="color: var(--school-bus-yellow);">🔒 CHECKPOINT!</h2>
+                <p id="checkpoint-q" style="font-size: 1.5rem; margin: 20px 0;">Question?</p>
+                <input type="text" id="checkpoint-input" class="input-field" placeholder="Answer...">
+                <button id="btn-submit-checkpoint" class="btn-primary" style="margin-top: 10px;">UNLOCK</button>
             </div>
         </div>
     </div>
