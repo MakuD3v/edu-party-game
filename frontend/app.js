@@ -408,6 +408,25 @@ class AppController {
                 // Only submit if typed matches completely AND has same length
                 if (typed.length === current.length && typed.toLowerCase() === current.toLowerCase()) {
                     console.log(`[Game2] Match found! Sending SUBMIT_WORD...`);
+
+                    // --- OPTIMISTIC UI ---
+                    // 1. Clear Input Immediately
+                    typeInput.value = '';
+
+                    // 2. Advance Word Locally
+                    this.state.currentWordIndex++;
+
+                    // 3. Update UI (Visual Sync)
+                    const wordDisplay = document.querySelector('#game2-word-display');
+                    if (wordDisplay && this.state.typingWords[this.state.currentWordIndex]) {
+                        wordDisplay.innerText = this.state.typingWords[this.state.currentWordIndex];
+                        document.getElementById('next-word-display').innerText =
+                            `Next: ${this.state.typingWords[this.state.currentWordIndex + 1] || 'FINISH'}`;
+                    } else if (wordDisplay) {
+                        wordDisplay.innerText = "Done!";
+                    }
+
+                    // 4. Send to Backend
                     this.net.send('SUBMIT_WORD', {
                         current_word: current,
                         typed_word: typed
