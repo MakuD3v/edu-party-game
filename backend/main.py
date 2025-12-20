@@ -433,51 +433,8 @@ async def run_game_2(lobby):
     # Wait for 30 seconds
     await asyncio.sleep(30)
     
-    # Game Over - Calculate results
-    leaderboard = lobby.get_leaderboard()
-    
-    # Check if Tournament should End (Round 3)
-    current_round = len(lobby.game_history)
-    print(f"[GAME2] Round {current_round} finished")
-    
-    if current_round >= 3:
-        # End Tournament
-        winner = None
-        if leaderboard:
-            top_id = leaderboard[0]["id"]
-            if top_id in lobby.players:
-                winner = lobby.players[top_id]
-        
-        winner_name = winner.username if winner else "No One"
-        
-        await lobby.broadcast({
-            "type": "TOURNAMENT_WINNER",
-            "payload": {
-                "winner": winner_name
-            }
-        })
-        return
-
-    advancing, eliminated = lobby.advance_players()
-    
-    
-    # Get next game info
-    next_game_number = lobby.select_next_game()
-    next_game_info = Lobby.get_game_info(next_game_number) if lobby.active_players else None
-    
-    # Broadcast round end
-    await lobby.broadcast({
-        "type": "ROUND_END",
-        "payload": {
-            "advancing": advancing,
-            "eliminated": eliminated,
-            "next_game": next_game_info
-        }
-    })
-    
-    # If there are still active players, wait 5 seconds then start next game
-    if lobby.active_players and next_game_info:
-        lobby.current_game = next_game_number
+    # End Game Logic
+    await handle_round_ending(lobby)
         await asyncio.sleep(5)  # Intermission delay
         
         # Send game preview

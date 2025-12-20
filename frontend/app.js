@@ -426,6 +426,20 @@ class AppController {
                         wordDisplay.innerText = "Done!";
                     }
 
+                    // --- UPDATE SCORE & WPM LOCALLY ---
+                    const scoreEl = document.getElementById('score-display-g2');
+                    const wpmEl = document.getElementById('wpm-display');
+
+                    if (scoreEl) {
+                        const currentScore = parseInt(scoreEl.innerText) || 0;
+                        scoreEl.innerText = currentScore + 10; // Assume +10 per word
+                    }
+
+                    // Simple WPM calc (Words / Minutes passed)
+                    // We need start time. `this.state.gameStartTime` isn't tracked explicitly here but we can approximate or wait for server.
+                    // Better: Just increment score for feedback. Server WPM is authoritative.
+                    // Let's just do Score for now to feel responsive.
+
                     // 4. Send to Backend
                     this.net.send('SUBMIT_WORD', {
                         current_word: current,
@@ -1503,7 +1517,22 @@ class AppController {
                 break;
 
             case 'SCORE_UPDATE':
-                this.renderLeaderboard(msg.payload);
+                // Update Leaderboard
+                this.ui.updateLeaderboard(msg.payload);
+
+                // Also update local HUD if I am in the list
+                if (this.state.user) {
+                    const myData = msg.payload.find(p => p.username === this.state.user.username);
+                    if (myData) {
+                        const scoreEl = document.getElementById('score-display-g2');
+                        const wpmEl = document.getElementById('wpm-display');
+                        if (scoreEl) scoreEl.innerText = myData.score;
+                        // WPM might be in payload? Lobby.get_leaderboard usually just sends score.
+                        // Logic.py: check_typed_word updates score.
+                        // If we want WPM, backend needs to send it.
+                        // For now, Score is key.
+                    }
+                }
                 break;
 
             case 'ROUND_END':
