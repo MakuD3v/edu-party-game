@@ -435,32 +435,6 @@ async def run_game_2(lobby):
     
     # End Game Logic
     await handle_round_ending(lobby)
-        await asyncio.sleep(5)  # Intermission delay
-        
-        # Send game preview
-        await lobby.broadcast({
-            "type": "GAME_PREVIEW",
-            "payload": {
-                "game_number": next_game_number,
-                "game_info": next_game_info,
-                "round_number": len(lobby.game_history)
-            }
-        })
-        
-        # Wait for preview
-        await asyncio.sleep(3)
-        
-        # Start next game
-        if next_game_number == 1:
-            await lobby.broadcast({
-                "type": "GAME_1_START",
-                "payload": {"duration": 20, "game_info": next_game_info}
-            })
-            asyncio.create_task(run_game_1(lobby))
-        elif next_game_number == 3:
-            await lobby.broadcast({
-                "type": "GAME_3_START",
-                "payload": {"duration": 90, "game_info": next_game_info}
             })
             asyncio.create_task(run_game_3(lobby))
 
