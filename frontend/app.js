@@ -1213,8 +1213,16 @@ class AppController {
             case 'TOURNAMENT_WINNER':
                 // Game 3 tournament winner
                 clearInterval(this.state.timerInterval);
-                alert(`🏆 TOURNAMENT WINNER: ${msg.payload.winner}! 🏆`);
-                setTimeout(() => location.reload(), 3000);
+                const winnerOverlay = document.getElementById('winner-overlay');
+                const winnerName = document.getElementById('winner-name');
+                if (winnerOverlay && winnerName) {
+                    winnerName.textContent = msg.payload.winner;
+                    winnerOverlay.classList.remove('hidden');
+                    // Add some confetti effect or animation here if desired in future
+                } else {
+                    alert(`🏆 TOURNAMENT WINNER: ${msg.payload.winner}! 🏆`);
+                    setTimeout(() => location.reload(), 3000);
+                }
                 break;
 
             case 'ERROR':
