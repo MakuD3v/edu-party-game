@@ -542,15 +542,21 @@ class AppController {
     // === GAME 3: MAZE CHALLENGE METHODS ===
 
     initMazeGame(payload) {
-        // Initialize Game 3 (Maze)
-        this.state.mazeLayout = payload.layout; // { length: 10, path: [...] }
+        // Init state
+        this.state.mazePath = payload.layout.path;
         this.state.mazePositions = payload.players;
-        this.state.mazePath = payload.layout.path || []; // Array of directions
 
-        this.ui.showScreen('game3');
+        // Reset local current position
+        this.state.currentMazePos = 0;
+        this.state.totalMazeSteps = payload.layout.length || 10;
+
+        // Update UI
+        document.getElementById('maze-position-counter').innerText = `Step: 0 / ${this.state.totalMazeSteps}`;
+
+        // Render initial frame
         this.renderMaze();
 
-        // Ensure focus for keyboard input
+        // Focus for input
         window.focus();
     }
 
@@ -684,8 +690,79 @@ class AppController {
         // Find my pos
         if (counter && this.state.user) {
             const myPos = players[this.state.user.id] || 0;
-            counter.innerText = `Step: ${myPos} / 10`;
+            counter.innerText = `Step: ${myPos} / ${this.state.totalMazeSteps}`;
+
+            // Check for Checkpoints (Steps 3, 6, 9)
+            if ([3, 6, 9].includes(myPos)) {
+                this.showCheckpointPuzzle(myPos);
+            }
         }
+    }
+
+    showCheckpointPuzzle(step) {
+        // Simple mock puzzles for now to satisfy requirement
+        // In real app, these would come from backend
+        const puzzles = {
+            3: { q: "Fix syntax: print 'hello'", a: "print('hello')" },
+            6: { q: "Fix syntax: if x = 5:", a: "if x == 5:" },
+            9: { q: "Fix syntax: for i in range(5)", a: "for i in range(5):" }
+        };
+
+        const puzzle = puzzles[step];
+        if (!puzzle) return;
+
+        // Check if already solved this step (locally) to avoid spam
+        if (this.state.lastSolvedStep === step) return;
+
+        // Verify we haven't shown it recently
+        const modalId = 'checkpoint-modal';
+        if (document.getElementById(modalId)) return;
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = modalId;
+        modal.style.position = 'fixed';
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%)';
+        modal.style.background = '#2C3E50';
+        modal.style.padding = '20px';
+        modal.style.borderRadius = '10px';
+        modal.style.border = '2px solid #F1C40F';
+        modal.style.color = 'white';
+        modal.style.zIndex = '1000';
+        modal.style.textAlign = 'center';
+
+        modal.innerHTML = `
+            <h3 style="color:#F1C40F; margin-top:0;">🛑 CHECKPOINT!</h3>
+            <p>${puzzle.q}</p>
+            <input type="text" id="chk-answer" placeholder="Type correction..." style="padding:10px; border-radius:5px; border:none; width:80%;">
+            <button id="chk-submit" style="margin-top:10px; padding:8px 20px; background:#27AE60; border:none; border-radius:5px; color:white; cursor:pointer;">SUBMIT</button>
+        `;
+
+        document.body.appendChild(modal);
+
+        const input = document.getElementById('chk-answer');
+        const btn = document.getElementById('chk-submit');
+
+        input.focus();
+
+        const submit = () => {
+            const val = input.value.trim();
+            if (val === puzzle.a) {
+                // Correct!
+                this.state.lastSolvedStep = step;
+                document.body.removeChild(modal);
+                // Maybe send a "bonus" score or just allow continue?
+                // For now, it just parses as a "blocker" you must solve.
+            } else {
+                input.style.border = '2px solid red';
+                setTimeout(() => input.style.border = 'none', 1000);
+            }
+        };
+
+        btn.onclick = submit;
+        input.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
     }
 
     getPlayerInfo(playerId) {
