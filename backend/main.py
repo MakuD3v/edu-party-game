@@ -154,104 +154,8 @@ async def run_game_1(lobby):
     # Wait for 20 seconds
     await asyncio.sleep(20)
     
-    # Game Over - Calculate results
-    leaderboard = lobby.get_leaderboard()
-    
-    # Check if Tournament should End (Round 3)
-    current_round = len(lobby.game_history)
-    print(f"[GAME1] Round {current_round} finished")
-    
-    if current_round >= 3:
-        # End Tournament
-        winner = None
-        if leaderboard:
-            top_id = leaderboard[0]["id"]
-            if top_id in lobby.players:
-                winner = lobby.players[top_id]
-        
-        winner_name = winner.username if winner else "No One"
-        
-        await lobby.broadcast({
-            "type": "TOURNAMENT_WINNER",
-            "payload": {
-                "winner": winner_name
-            }
-        })
-        return
-
-    # Normal Round End -> Next Game
-    advancing, eliminated = lobby.advance_players()
-    
-    # Get player info for results
-    advancing_players = []
-    eliminated_players = []
-    
-    for pid in advancing:
-        if pid in lobby.players:
-            p = lobby.players[pid]
-            advancing_players.append({
-                'username': p.username,
-                'score': lobby.player_scores.get(pid, 0),
-                'color': p.color,
-                'shape': p.shape.value
-            })
-    
-    for pid in eliminated:
-        if pid in lobby.players:
-            p = lobby.players[pid]
-            eliminated_players.append({
-                'username': p.username,
-                'score': lobby.player_scores.get(pid, 0),
-                'color': p.color,
-                'shape': p.shape.value
-            })
-    
-    
-    # Get next game info for display
-    next_game_number = lobby.select_next_game()
-    next_game_info = lobby.get_game_info(next_game_number) if lobby.active_players else None
-    
-    # Broadcast round end
-    await lobby.broadcast({
-        "type": "ROUND_END",
-        "payload": {
-            "advancing": advancing_players,
-            "eliminated": eliminated_players,
-            "next_game": next_game_info
-        }
-    })
-    
-    # If there are still active players, wait 5 seconds then start next game
-    if lobby.active_players and next_game_info:
-        lobby.current_game = next_game_number
-        await asyncio.sleep(5)  # Intermission delay
-        
-        # Send game preview
-        await lobby.broadcast({
-            "type": "GAME_PREVIEW",
-            "payload": {
-                "game_number": next_game_number,
-                "game_info": next_game_info,
-                "round_number": len(lobby.game_history)
-            }
-        })
-        
-        # Wait for preview
-        await asyncio.sleep(3)
-        
-        # Start the appropriate game
-        if next_game_number == 2:
-            await lobby.broadcast({
-                "type": "GAME_2_START",
-                "payload": {"duration": 30, "game_info": next_game_info}
-            })
-            asyncio.create_task(run_game_2(lobby))
-        elif next_game_number == 3:
-            await lobby.broadcast({
-                "type": "GAME_3_START",
-                "payload": {"duration": 90, "game_info": next_game_info}
-            })
-            asyncio.create_task(run_game_3(lobby))
+    # End Game Logic - Use shared handler!
+    await handle_round_ending(lobby)
 
 async def handle_round_ending(lobby):
     """Helper function to handle common round ending logic."""
@@ -384,23 +288,19 @@ async def run_game_3(lobby):
     # Wait for completion or timeout
     start_time = time.time()
     while time.time() - start_time < 90:
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5) # Check faster
         
-        # Check if anyone finished (reached 10)
-        # In Race mode, usually first to finish ends game? 
-        # Or wait for timer? 
-        # User said "First to in input answer... score... half elim".
-        # Let's run full duration to let people score, unless EVERYONE finishes.
-        
-        # Check if ALL active players finished?
-        all_finished = True
+        # Check if ANYONE finished (First to finish wins/ends it)
+        any_finished = False
+        winner_id = None
         for pid in lobby.active_players:
-            if lobby.maze_state.get(pid, 0) < 10: # Assuming maze_state is now race_state
-                all_finished = False
+            if lobby.maze_state.get(pid, 0) >= 10: 
+                any_finished = True
+                winner_id = pid
                 break
         
-        if all_finished and lobby.active_players:
-            print("[GAME3] All players finished!")
+        if any_finished:
+            print(f"[GAME3] Player {winner_id} finished! Ending game.")
             break
             
     # End Game Logic (Result Round)

@@ -236,6 +236,7 @@ class Lobby:
         self.active_players = [pid for pid, p in self.players.items() if p.is_ready]
         self.spectators = []
         self.player_scores = {pid: 0 for pid in self.active_players}
+        self.game_history = [1] # Tracks games played (Starts with Game 1)
         self.game_start_time = time.time()
     
     def generate_math_question(self) -> Dict:
