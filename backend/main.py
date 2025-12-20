@@ -430,8 +430,8 @@ async def run_game_2(lobby):
                 print(f"[GAME2] Failed to send words to {player.username}: {e}")
                 pass
                 
-    # Wait for 30 seconds
-    await asyncio.sleep(30)
+    # Wait for 20 seconds
+    await asyncio.sleep(20)
     
     # End Game Logic
     await handle_round_ending(lobby)

@@ -94,7 +94,7 @@ class Lobby:
                 "description": "Type words at lightning speed!",
                 "icon": "⌨️",
                 "color": "#3498DB",  # Blue
-                "duration": 60
+                "duration": 20
             },
             3: {
                 "name": "TECH SPRINT",
