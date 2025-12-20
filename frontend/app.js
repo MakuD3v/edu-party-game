@@ -1399,6 +1399,11 @@ class AppController {
                 console.log('GAME_3_START received:', msg.payload);
                 this.state.gameTimer = msg.payload.duration;
                 this.state.currentGame = 3;
+
+                // Initialize Game Data IMMEDIATELY
+                this.initRaceGame(msg.payload);
+
+                // Show Tutorial
                 this.showTutorial(3);
                 break;
             case 'NEW_QUESTION':
@@ -1542,19 +1547,7 @@ class AppController {
 
             // === GAME 3 EVENTS ===
 
-            case 'MAZE_START':
-                console.log('MAZE_START received:', msg.payload);
-                this.state.currentGame = 3;
 
-                // Ensure game3 screen is visible
-                this.ui.showScreen('game3');
-
-                // Wait for DOM to be ready, then initialize
-                setTimeout(() => {
-                    console.log('Initializing Race game...');
-                    this.initRaceGame(msg.payload);
-                }, 100);
-                break;
 
             case 'PLAYER_MOVED':
                 // Another player moved, update their position
