@@ -128,15 +128,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 # === GAME TIMER FUNCTIONS ===
 
-async def run_game_1(lobby):
-    """Run Game 1 (Math Quiz) for 20 seconds."""
-    import asyncio
-    import time
-    
-    # Send first question to all active players
-    question = lobby.generate_math_question()
-    print(f"[GAME1] Generated question: {question}")
-    print(f"[GAME1] Active players: {lobby.active_players}")
+
     
     for player_id in lobby.active_players:
         if player_id in lobby.players:
