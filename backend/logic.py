@@ -67,6 +67,7 @@ class Lobby:
         # Game State
         self.current_question: Dict = None
         self.player_scores: Dict[str, int] = {} # player_id -> score
+        self.last_score_update: Dict[str, float] = {} # player_id -> timestamp (for tie-breaking)
         self.game_history: List[int] = [] # Track played games
         self.available_games: List[int] = [1, 2, 3]
 
@@ -269,6 +270,7 @@ class Lobby:
         correct = (self.current_question["answer"] == answer)
         if correct:
             self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
+            self.last_score_update[player_id] = time.time()
         return correct
         
     # --- GAME 2: SPEED TYPING ---
@@ -292,6 +294,7 @@ class Lobby:
         if correct:
             # +1 score for each correct word
             self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
+            self.last_score_update[player_id] = time.time()
         return correct
 
     # --- GAME 3: MAZE CHALLENGE ---
@@ -396,11 +399,12 @@ class Lobby:
                     "username": player.username,
                     "color": player.color,
                     "shape": player.shape.value, # Enum to value
-                    "score": score
+                    "score": score,
+                    "last_update": self.last_score_update.get(pid, float('inf'))
                 })
         
-        # Sort desc by score
-        return sorted(leaderboard, key=lambda x: x["score"], reverse=True)
+        # Sort desc by score, then asc by last_update (earlier is better)
+        return sorted(leaderboard, key=lambda x: (-x["score"], x["last_update"]))
     
     def advance_players(self) -> tuple[List[str], List[str]]:
         """Calculate top 50% to advance, rest become spectators."""
@@ -414,8 +418,8 @@ class Lobby:
         # Calculate how many advance (round up for odd numbers)
         num_advancing = max(1, (total_active + 1) // 2)
         
-        advancing = [p['player_id'] for p in leaderboard[:num_advancing]]
-        eliminated = [p['player_id'] for p in leaderboard[num_advancing:]]
+        advancing = [p['id'] for p in leaderboard[:num_advancing]]
+        eliminated = [p['id'] for p in leaderboard[num_advancing:]]
         
         # Update state
         self.active_players = advancing
