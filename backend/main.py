@@ -155,12 +155,18 @@ async def run_game_1(lobby):
 
 async def run_game(lobby, game_number):
     """Generic runner that starts the appropriate Game Strategy."""
-    game_instance = lobby.start_game(game_number) # Instantiates MathGame, TypingGame, etc.
-    if game_instance:
-        await game_instance.run()
-        
-    # After game finishes, handle round ending
-    await handle_round_ending(lobby)
+    print(f"[RUN_GAME] Starting Game {game_number} for Lobby {lobby.id}")
+    try:
+        game_instance = lobby.start_game(game_number) # Instantiates MathGame, TypingGame, etc.
+        if game_instance:
+            await game_instance.run()
+            
+        # After game finishes, handle round ending
+        await handle_round_ending(lobby)
+    except Exception as e:
+        import traceback
+        print(f"CRITICAL ERROR IN RUN_GAME: {e}")
+        traceback.print_exc()
 
 async def handle_round_ending(lobby):
     """Helper function to handle common round ending logic."""
@@ -465,7 +471,12 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 if not lobby: continue
                 
                 # Delegate all game input to the active Game Strategy
-                await lobby.handle_game_input(player.id, data)
+                try:
+                    await lobby.handle_game_input(player.id, data)
+                except Exception as e:
+                    print(f"[GAME_INPUT_ERROR] {e}")
+                    import traceback
+                    traceback.print_exc()
                 
             # --- LEGACY / OTHER EVENTS ---
             elif event_type == "MAZE_MOVE": # Checkpoint maze (Game 3 alternate)

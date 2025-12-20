@@ -1399,7 +1399,7 @@ class AppController {
             case 'GAME_3_START':
                 console.log('GAME_3_START received:', msg.payload);
                 this.state.gameTimer = msg.payload.duration;
-                this.state.currentGame = 3;
+                this.state.game = 3;
 
                 // Initialize Game Data IMMEDIATELY
                 this.initRaceGame(msg.payload);
