@@ -1597,4 +1597,5 @@ class AppController {
 }
 
 // MAIN ENTRY POINT
-const app = new AppController();
+// MAIN ENTRY POINT
+window.app = new AppController();
