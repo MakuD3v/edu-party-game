@@ -387,24 +387,89 @@ async def run_game_3(lobby):
         await asyncio.sleep(0.5)
         ticks += 0.5
         
-        # Check if anyone reached 20 (finish line)
+        # Check if anyone reached 10 (finish line)
         for pid, pos in lobby.maze_state.items():
-            if pos >= 20:
+            if pos >= 10:
                 winner = lobby.players.get(pid)
                 game_active = False
                 break
                 
-        # Broadcast positions periodically? 
-        # Actually positions are updated via MOVE actions in real-time
-        # But maybe sync every few seconds to be safe
+        # Broadcast positions periodically
         if ticks % 2 == 0:
              await lobby.broadcast({
+                "type": "MAZE_STATE",
+                "payload": lobby.maze_state
+            })
+            
+    # Game Over
+    leaderboard = lobby.get_leaderboard()
+    
+    # Check if Tournament should End (Round 3)
+    current_round = len(lobby.game_history)
+    print(f"[GAME3] Round {current_round} finished")
+    
+    if current_round >= 3:
+        # End Tournament
+        winner_name = winner.username if winner else (leaderboard[0]['username'] if leaderboard else "No One")
+        
+        await lobby.broadcast({
+            "type": "TOURNAMENT_WINNER",
+            "payload": {
+                "winner": winner_name
+            }
+        })
+        return
+
+    # Round End -> Next Game
+    # Standard logic for advancing (though Game 3 is usually last, dynamic logic allows it to be 1 or 2)
+    advancing, eliminated = lobby.advance_players()
+    
+    next_game_number = lobby.select_next_game()
+    next_game_info = Lobby.get_game_info(next_game_number) if lobby.active_players else None
+
+    # Get player info for results (reconstruct list)
+    advancing_players = []
+    eliminated_players = []
+    for pid in advancing:
+        if pid in lobby.players:
+            p = lobby.players[pid]
+            advancing_players.append({
+                'username': p.username, 
+                'score': lobby.player_scores.get(pid, 0),
+                'color': p.color,
+                'shape': p.shape.value
+            })
+            
+    await lobby.broadcast({
+        "type": "ROUND_END",
+        "payload": {
+            "advancing": advancing_players,
+            "eliminated": eliminated_players,
+            "next_game": next_game_info
+        }
+    })
+
+    # Integrate Next Game Logic
+    if lobby.active_players and next_game_info:
+        lobby.current_game = next_game_number
+        await asyncio.sleep(5)
+        
+        await lobby.broadcast({
+            "type": "GAME_PREVIEW",
+            "payload": {
+                "game_number": next_game_number,
+                "game_info": next_game_info,
+                "round_number": len(lobby.game_history)
+            }
+        })
+        await asyncio.sleep(3)
+        
+        if next_game_number == 1:
+            await lobby.broadcast({"type": "GAME_1_START", "payload": {"duration": 20, "game_info": next_game_info}})
+            asyncio.create_task(run_game_1(lobby))
         elif next_game_number == 2:
             await lobby.broadcast({"type": "GAME_2_START", "payload": {"duration": 30, "game_info": next_game_info}})
             asyncio.create_task(run_game_2(lobby))
-        
-        # Note: If Game 3 can be followed by Game 3, we need logic for that.
-        # But select_next_game avoids repeats. So it should be fine.
 
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
