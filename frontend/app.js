@@ -426,11 +426,15 @@ class AppController {
 
         // Game 3 Maze Controls (Arrow Keys)
         document.addEventListener('keydown', (e) => {
+            // Debug log for ANY keydown to check focus
+            console.log('[Input] Key:', e.key, 'Game:', this.state.currentGame);
+
             // Only handle if in Game 3
-            const game3Screen = document.getElementById('screen-game3');
-            if (game3Screen && game3Screen.classList.contains('active')) {
-                if (e.key === 'ArrowRight') {
+            if (this.state.currentGame === 3) {
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                    // Prevent default scrolling
                     e.preventDefault();
+                    console.log('[Game3] Moving Right');
                     this.net.send('MAZE_MOVE', { direction: 'right' });
                 }
             }
