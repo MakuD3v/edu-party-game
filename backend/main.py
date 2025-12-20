@@ -210,7 +210,8 @@ async def handle_round_ending(lobby):
         })
         
         # Wait for people to see the board
-        await asyncio.sleep(10)
+        # Wait for people to see the board
+        await asyncio.sleep(5)
         
         # --- END TOURNAMENT ---
         winner = None

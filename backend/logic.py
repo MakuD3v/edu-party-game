@@ -118,42 +118,20 @@ class Lobby:
         Select a random game avoiding repeats from last 2 rounds.
         Implements EDU PARTY Educational Mayhem weighted randomization for variety.
         """
-        # Build exclusion set from recent history
-        if len(self.game_history) >= 2:
-            excluded = set(self.game_history[-2:])
-        elif len(self.game_history) == 1:
-            excluded = {self.game_history[-1]}
-        else:
-            excluded = set()
-            
-        # Get possible games (exclude recent ones)
-        possible = [g for g in self.available_games if g not in excluded]
+
+        # Strict Exclusion: Never pick a game that has already been played in this tournament
+        played_games = set(self.game_history)
+        possible = [g for g in self.available_games if g not in played_games]
         
-        # Fallback: if somehow all are excluded (shouldn't happen with 3 games + logic)
-        # Just avoid the very last game
+        # Fallback: If all games played (e.g. extended tournament?), clear history or allow repeat.
+        # But per user request: "eliminated from pool".
+        # Assuming 3 rounds max for now.
         if not possible:
-            possible = [g for g in self.available_games if g != self.game_history[-1]]
-        
-        # Ultimate fallback
-        if not possible:
+            # If we mistakenly run out, just pick random to avoid crash, but log it.
+            print("[WARNING] All games played, looping back.")
             possible = self.available_games.copy()
-        
-        # Weighted selection: Games played less recently get higher weights
-        weights = []
-        for game in possible:
-            # Base weight
-            weight = 1.0
             
-            # Increase weight if game hasn't been played in a while
-            if game not in self.game_history:
-                weight = 2.0  # Never played yet
-            elif len(self.game_history) >= 3 and game not in self.game_history[-3:]:
-                weight = 1.5  # Not in last 3 rounds
-            
-            weights.append(weight)
-        
-        # Weighted random choice
-        selected = random.choices(possible, weights=weights, k=1)[0]
+        selected = random.choice(possible)
         self.game_history.append(selected)
         
         return selected

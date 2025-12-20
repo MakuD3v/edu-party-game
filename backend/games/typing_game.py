@@ -56,7 +56,17 @@ class TypingGame(BaseGame):
         
         is_correct = (target_word == typed_word)
         
+        # Ensure correct word hasn't been processed for this player yet (if we want strictly unique words)
+        # But wait, is_correct implies they finished the CURRENT word. 
+        # The user said "multiplying", which implies the event might be firing multiple times for one word.
+        # We should debounce or check state.
+        
         if is_correct:
+            # Check if this score update is too fast (debounce 0.5s)
+            last_time = self.lobby.last_score_update.get(player_id, 0)
+            if time.time() - last_time < 0.1: # 100ms debounce
+                return
+
             self.lobby.player_scores[player_id] = self.lobby.player_scores.get(player_id, 0) + 1
             self.lobby.last_score_update[player_id] = time.time()
             
