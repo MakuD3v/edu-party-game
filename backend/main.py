@@ -232,8 +232,12 @@ async def run_game_1(lobby):
 async def run_game_2(lobby):
     """Run Game 2 (Speed Typing) for 30 seconds."""
     
+    print(f"[GAME2] run_game_2 started")
+    print(f"[GAME2] Active players: {lobby.active_players}")
+    
     # Generate common words for everyone
     words = lobby.generate_typing_words(100)
+    print(f"[GAME2] Generated {len(words)} words")
     
     # Broadcast words to all active players
     for player_id in lobby.active_players:
