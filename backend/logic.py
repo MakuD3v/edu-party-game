@@ -74,7 +74,87 @@ class Lobby:
         self.add_player(host)
         host.is_host = True
     
-    # ... (get_game_info, select_next_game methods omitted for brevity) ...
+    @staticmethod
+    def get_game_info(game_number: int) -> Dict:
+        """
+        Returns metadata for a specific game for UI display.
+        EDU PARTY Educational Mayhem game information.
+        """
+        game_data = {
+            1: {
+                "name": "MATH QUIZ",
+                "description": "Answer math problems as fast as you can!",
+                "icon": "🧮",
+                "color": "#E74C3C",  # Red
+                "duration": 20
+            },
+            2: {
+                "name": "SPEED TYPING",
+                "description": "Type words at lightning speed!",
+                "icon": "⌨️",
+                "color": "#3498DB",  # Blue
+                "duration": 60
+            },
+            3: {
+                "name": "MAZE CHALLENGE",
+                "description": "Navigate the maze and solve puzzles!",
+                "icon": "🧩",
+                "color": "#F39C12",  # Orange
+                "duration": 90
+            }
+        }
+        return game_data.get(game_number, {
+            "name": "UNKNOWN",
+            "description": "Mystery game!",
+            "icon": "❓",
+            "color": "#95A5A6",
+            "duration": 30
+        })
+
+    def select_next_game(self) -> int:
+        """
+        Select a random game avoiding repeats from last 2 rounds.
+        Implements EDU PARTY Educational Mayhem weighted randomization for variety.
+        """
+        # Build exclusion set from recent history
+        if len(self.game_history) >= 2:
+            excluded = set(self.game_history[-2:])
+        elif len(self.game_history) == 1:
+            excluded = {self.game_history[-1]}
+        else:
+            excluded = set()
+            
+        # Get possible games (exclude recent ones)
+        possible = [g for g in self.available_games if g not in excluded]
+        
+        # Fallback: if somehow all are excluded (shouldn't happen with 3 games + logic)
+        # Just avoid the very last game
+        if not possible:
+            possible = [g for g in self.available_games if g != self.game_history[-1]]
+        
+        # Ultimate fallback
+        if not possible:
+            possible = self.available_games.copy()
+        
+        # Weighted selection: Games played less recently get higher weights
+        weights = []
+        for game in possible:
+            # Base weight
+            weight = 1.0
+            
+            # Increase weight if game hasn't been played in a while
+            if game not in self.game_history:
+                weight = 2.0  # Never played yet
+            elif len(self.game_history) >= 3 and game not in self.game_history[-3:]:
+                weight = 1.5  # Not in last 3 rounds
+            
+            weights.append(weight)
+        
+        # Weighted random choice
+        selected = random.choices(possible, weights=weights, k=1)[0]
+        self.game_history.append(selected)
+        
+        return selected
 
     @property
     def is_full(self) -> bool:
