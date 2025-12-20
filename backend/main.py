@@ -151,11 +151,41 @@ async def run_game_1(lobby):
                 print(f"[GAME1] Failed to send question to {player.username}: {e}")
                 pass
     
+                })
+                print(f"[GAME1] Sent question {i} to {player.username}")
+            except Exception as e:
+                print(f"[GAME1] Failed to send question to {player.username}: {e}")
+                pass
+    
     # Wait for 20 seconds
     await asyncio.sleep(20)
     
     # Game Over - Calculate results
     leaderboard = lobby.get_leaderboard()
+    
+    # Check if Tournament should End (Round 3)
+    current_round = len(lobby.game_history)
+    print(f"[GAME1] Round {current_round} finished")
+    
+    if current_round >= 3:
+        # End Tournament
+        winner = None
+        if leaderboard:
+            top_id = leaderboard[0]["id"]
+            if top_id in lobby.players:
+                winner = lobby.players[top_id]
+        
+        winner_name = winner.username if winner else "No One"
+        
+        await lobby.broadcast({
+            "type": "TOURNAMENT_WINNER",
+            "payload": {
+                "winner": winner_name
+            }
+        })
+        return
+
+    # Normal Round End -> Next Game
     advancing, eliminated = lobby.advance_players()
     
     # Get player info for results
@@ -258,6 +288,29 @@ async def run_game_2(lobby):
     
     # Game Over - Calculate results
     leaderboard = lobby.get_leaderboard()
+    
+    # Check if Tournament should End (Round 3)
+    current_round = len(lobby.game_history)
+    print(f"[GAME2] Round {current_round} finished")
+    
+    if current_round >= 3:
+        # End Tournament
+        winner = None
+        if leaderboard:
+            top_id = leaderboard[0]["id"]
+            if top_id in lobby.players:
+                winner = lobby.players[top_id]
+        
+        winner_name = winner.username if winner else "No One"
+        
+        await lobby.broadcast({
+            "type": "TOURNAMENT_WINNER",
+            "payload": {
+                "winner": winner_name
+            }
+        })
+        return
+
     advancing, eliminated = lobby.advance_players()
     
     
@@ -348,34 +401,12 @@ async def run_game_3(lobby):
         # But maybe sync every few seconds to be safe
         if ticks % 2 == 0:
              await lobby.broadcast({
-                "type": "MAZE_STATE",
-                "payload": lobby.maze_state
-            })
-            
-    # Game Over
-    if winner:
-        # Winner wins the WHOLE tournament
-        await lobby.broadcast({
-            "type": "TOURNAMENT_WINNER",
-            "payload": {
-                "winner": winner.username,
-                "winner_id": winner.id
-            }
-        })
-    else:
-        # Time up - whoever is furthest wins?
-        leaderboard = lobby.get_leaderboard()
-        if leaderboard:
-            top_player_id = leaderboard[0]["id"]
-            top_player = lobby.players.get(top_player_id)
-            await lobby.broadcast({
-                "type": "TOURNAMENT_WINNER",
-                "payload": {
-                    "winner": top_player.username,
-                    "winner_id": top_player.id,
-                    "reason": "Time Up - Furthest Progress"
-                }
-            })
+        elif next_game_number == 2:
+            await lobby.broadcast({"type": "GAME_2_START", "payload": {"duration": 30, "game_info": next_game_info}})
+            asyncio.create_task(run_game_2(lobby))
+        
+        # Note: If Game 3 can be followed by Game 3, we need logic for that.
+        # But select_next_game avoids repeats. So it should be fine.
 
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
