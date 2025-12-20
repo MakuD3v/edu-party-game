@@ -219,7 +219,7 @@ async def run_game_1(lobby):
         if next_game_number == 2:
             await lobby.broadcast({
                 "type": "GAME_2_START",
-                "payload": {"duration": 60, "game_info": next_game_info}
+                "payload": {"duration": 30, "game_info": next_game_info}
             })
             asyncio.create_task(run_game_2(lobby))
         elif next_game_number == 3:
@@ -230,10 +230,7 @@ async def run_game_1(lobby):
             asyncio.create_task(run_game_3(lobby))
 
 async def run_game_2(lobby):
-    """Run Game 2 (Speed Typing) for 60 seconds."""
-    
-    # Wait for tutorial + countdown to finish (5 sec tutorial + 3 sec countdown = 8 seconds)
-    await asyncio.sleep(8)
+    """Run Game 2 (Speed Typing) for 30 seconds."""
     
     # Generate common words for everyone
     words = lobby.generate_typing_words(100)
@@ -252,8 +249,8 @@ async def run_game_2(lobby):
                 print(f"[GAME2] Failed to send words to {player.username}: {e}")
                 pass
                 
-    # Wait for remaining game time (60 - 8 = 52 seconds)
-    await asyncio.sleep(52)
+    # Wait for 30 seconds
+    await asyncio.sleep(30)
     
     # Game Over - Calculate results
     leaderboard = lobby.get_leaderboard()
@@ -569,7 +566,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     lobby.player_scores = {pid: 0 for pid in lobby.active_players}
                     await lobby.broadcast({
                         "type": "GAME_2_START",
-                        "payload": {"duration": 60, "game_info": game_info}
+                        "payload": {"duration": 30, "game_info": game_info}
                     })
                     asyncio.create_task(run_game_2(lobby))
                     
