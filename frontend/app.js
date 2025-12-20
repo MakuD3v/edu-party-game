@@ -172,19 +172,63 @@ class NetworkService {
         this.ws = new WebSocket(`${protocol}//${window.location.host}/ws/${username}`);
 
         this.ws.onopen = () => {
-            console.log('WebSocket connected');
-            this.connected = true;
+            console.log('Connected to server');
+            this.reconnectAttempts = 0;
+            // Attempt to recover session if we have one
+            // (For now clean slate or re-login logic would go here)
         };
 
         this.ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            this.notify(msg);
+            try {
+                const msg = JSON.parse(event.data);
+                this.notify(msg); // Assuming handleMessage is meant to be notify
+            } catch (e) {
+                console.error('Invalid message:', event.data, e);
+            }
         };
 
         this.ws.onclose = () => {
-            console.log('WebSocket disconnected');
-            this.connected = false;
+            console.log('Disconnected from server');
+            this.showDisconnectOverlay();
         };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    showDisconnectOverlay() {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.background = 'rgba(0,0,0,0.85)';
+        overlay.style.zIndex = '9999';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.color = 'white';
+        overlay.style.fontFamily = 'Arial, sans-serif';
+
+        overlay.innerHTML = `
+            <h1 style="color:#E74C3C; font-size:3rem; margin-bottom:20px;">⚠️ Connection Lost</h1>
+            <p style="font-size:1.5rem; margin-bottom:30px;">The server has restarted or connection was lost.</p>
+            <button onclick="window.location.reload()" style="
+                padding: 15px 40px;
+                font-size: 1.2rem;
+                background: #3498DB;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                box-shadow: 0 4px 0 #2980B9;
+            ">REFRESH PAGE</button>
+        `;
+
+        document.body.appendChild(overlay);
     }
 
     send(type, payload = {}) {
