@@ -165,25 +165,11 @@ async def handle_round_ending(lobby):
     current_round = len(lobby.game_history)
     print(f"[ROUND_END_HANDLER] Round {current_round} finished")
     
-    if current_round >= 3:
-        # End Tournament
-        winner = None
-        if leaderboard:
-            top_id = leaderboard[0]["id"]
-            if top_id in lobby.players:
-                winner = lobby.players[top_id]
-        
-        winner_name = winner.username if winner else "No One"
-        
-        await lobby.broadcast({
-            "type": "TOURNAMENT_WINNER",
-            "payload": {
-                "winner": winner_name
-            }
-        })
-        return
-
-    # Normal Round End -> Next Game
+    # Check if Tournament should End (Round 3)
+    current_round = len(lobby.game_history)
+    print(f"[ROUND_END_HANDLER] Round {current_round} finished")
+    
+    # ALWAYS calculate results for display first
     advancing, eliminated = lobby.advance_players()
     
     # Get player info for results
@@ -209,6 +195,42 @@ async def handle_round_ending(lobby):
                 'color': p.color,
                 'shape': p.shape.value
             })
+
+    if current_round >= 3:
+        # --- FINAL INTERMISSION (Show R3 Results) ---
+        print("[ROUND_END_HANDLER] Final Round - Showing Intermission before Winner")
+        
+        # Broadcast round end (No next game)
+        await lobby.broadcast({
+            "type": "ROUND_END",
+            "payload": {
+                "advancing": advancing_players,
+                "eliminated": eliminated_players,
+                "next_game": None # Signals "Final Results"
+            }
+        })
+        
+        # Wait for people to see the board
+        await asyncio.sleep(10)
+        
+        # --- END TOURNAMENT ---
+        winner = None
+        if leaderboard:
+            top_id = leaderboard[0]["id"]
+            if top_id in lobby.players:
+                winner = lobby.players[top_id]
+        
+        winner_name = winner.username if winner else "No One"
+        
+        await lobby.broadcast({
+            "type": "TOURNAMENT_WINNER",
+            "payload": {
+                "winner": winner_name
+            }
+        })
+        return
+
+    # Normal Round End -> Next Game
     
     # Get next game info for display
     next_game_number = lobby.select_next_game()

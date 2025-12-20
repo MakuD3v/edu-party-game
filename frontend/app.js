@@ -1137,6 +1137,7 @@ class AppController {
             document.getElementById('eliminated-list').innerHTML = eliminatedHtml || '<div class="no-players">None</div>';
 
             // Show next game info or winner
+            // Show next game info or winner
             if (data.next_game) {
                 // Display next game info above countdown
                 const nextGameInfo = document.getElementById('next-game-info');
@@ -1168,15 +1169,14 @@ class AppController {
                     }, 1000);
                 }
             } else {
-                // Tournament over, show winner
-                if (data.advancing.length > 0) {
-                    const winner = data.advancing[0];
-                    const nextGameInfo = document.getElementById('next-game-info');
-                    nextGameInfo.innerHTML = `
-                        <h2 style="color:var(--school-bus-yellow);">🎉 WINNER: ${winner.username}! 🎉</h2>
-                        <button class="btn-primary" onclick="location.reload()">RETURN TO MENU</button>
-                    `;
-                }
+                // Final Results (Waiting for Winner Announcement)
+                const nextGameInfo = document.getElementById('next-game-info');
+                nextGameInfo.innerHTML = `
+                    <div style="font-size:2rem; color:var(--school-bus-yellow); font-weight:bold; margin:30px 0;">
+                        🏆 CALCULATING FINAL RESULTS... 🏆
+                    </div>
+                    <div style="color:#aaa;">Please wait for the winner announcement!</div>
+                `;
             }
         }
     }
