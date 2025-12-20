@@ -782,6 +782,18 @@ class AppController {
 
             // Show next game info or winner
             if (data.next_game) {
+                // Display next game info above countdown
+                const nextGameInfo = document.getElementById('next-game-info');
+                nextGameInfo.innerHTML = `
+                    <div style="font-size:1.3rem; color:#aaa; margin-bottom:10px;">
+                        Next Game: <span style="color:var(--school-bus-yellow); font-weight:bold;">${data.next_game.icon} ${data.next_game.name}</span>
+                    </div>
+                    <div id="next-game-countdown" style="font-size:3rem; color:var(--school-bus-yellow); font-weight:bold; margin:20px 0;">
+                        <!-- Countdown appears here -->
+                    </div>
+                    <div style="color:#aaa;">Get ready...</div>
+                `;
+
                 // Start countdown for next game
                 const countdownEl = document.getElementById('next-game-countdown');
                 let countdown = 5; // 5 second countdown

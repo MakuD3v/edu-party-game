@@ -182,15 +182,52 @@ async def run_game_1(lobby):
                 'shape': p.shape.value
             })
     
+    
+    # Get next game info for display
+    next_game_number = lobby.select_next_game()
+    next_game_info = Lobby.get_game_info(next_game_number) if lobby.active_players else None
+    
     # Broadcast round end
     await lobby.broadcast({
         "type": "ROUND_END",
         "payload": {
             "advancing": advancing_players,
             "eliminated": eliminated_players,
-            "next_game": "Game 2: Speed Typing" if lobby.active_players else None
+            "next_game": next_game_info
         }
     })
+    
+    # If there are still active players, wait 5 seconds then start next game
+    if lobby.active_players and next_game_info:
+        lobby.current_game = next_game_number
+        await asyncio.sleep(5)  # Intermission delay
+        
+        # Send game preview
+        await lobby.broadcast({
+            "type": "GAME_PREVIEW",
+            "payload": {
+                "game_number": next_game_number,
+                "game_info": next_game_info,
+                "round_number": len(lobby.game_history)
+            }
+        })
+        
+        # Wait for preview
+        await asyncio.sleep(3)
+        
+        # Start the appropriate game
+        if next_game_number == 2:
+            await lobby.broadcast({
+                "type": "GAME_2_START",
+                "payload": {"duration": 60, "game_info": next_game_info}
+            })
+            asyncio.create_task(run_game_2(lobby))
+        elif next_game_number == 3:
+            await lobby.broadcast({
+                "type": "GAME_3_START",
+                "payload": {"duration": 90, "game_info": next_game_info}
+            })
+            asyncio.create_task(run_game_3(lobby))
 
 async def run_game_2(lobby):
     """Run Game 2 (Speed Typing) for 60 seconds."""
@@ -222,15 +259,52 @@ async def run_game_2(lobby):
     leaderboard = lobby.get_leaderboard()
     advancing, eliminated = lobby.advance_players()
     
+    
+    # Get next game info
+    next_game_number = lobby.select_next_game()
+    next_game_info = Lobby.get_game_info(next_game_number) if lobby.active_players else None
+    
     # Broadcast round end
     await lobby.broadcast({
         "type": "ROUND_END",
         "payload": {
             "advancing": advancing,
             "eliminated": eliminated,
-            "next_game": "Game 3: Maze Challenge" if lobby.active_players else None
+            "next_game": next_game_info
         }
     })
+    
+    # If there are still active players, wait 5 seconds then start next game
+    if lobby.active_players and next_game_info:
+        lobby.current_game = next_game_number
+        await asyncio.sleep(5)  # Intermission delay
+        
+        # Send game preview
+        await lobby.broadcast({
+            "type": "GAME_PREVIEW",
+            "payload": {
+                "game_number": next_game_number,
+                "game_info": next_game_info,
+                "round_number": len(lobby.game_history)
+            }
+        })
+        
+        # Wait for preview
+        await asyncio.sleep(3)
+        
+        # Start next game
+        if next_game_number == 1:
+            await lobby.broadcast({
+                "type": "GAME_1_START",
+                "payload": {"duration": 20, "game_info": next_game_info}
+            })
+            asyncio.create_task(run_game_1(lobby))
+        elif next_game_number == 3:
+            await lobby.broadcast({
+                "type": "GAME_3_START",
+                "payload": {"duration": 90, "game_info": next_game_info}
+            })
+            asyncio.create_task(run_game_3(lobby))
 
 async def run_game_3(lobby):
     """Run Game 3 (Maze Challenge). Race to finish!"""
