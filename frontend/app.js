@@ -781,13 +781,29 @@ class AppController {
             document.getElementById('eliminated-list').innerHTML = eliminatedHtml;
 
             // Show next game info or winner
-            const nextGameInfo = document.getElementById('next-game-info');
             if (data.next_game) {
-                nextGameInfo.innerHTML = '<p>Next round coming soon...</p>';
+                // Start countdown for next game
+                const countdownEl = document.getElementById('next-game-countdown');
+                let countdown = 5; // 5 second countdown
+
+                if (countdownEl) {
+                    countdownEl.textContent = countdown;
+
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        countdownEl.textContent = countdown;
+
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                            countdownEl.textContent = 'Starting...';
+                        }
+                    }, 1000);
+                }
             } else {
                 // Tournament over, show winner
                 if (data.advancing.length > 0) {
                     const winner = data.advancing[0];
+                    const nextGameInfo = document.getElementById('next-game-info');
                     nextGameInfo.innerHTML = `
                         <h2 style="color:var(--school-bus-yellow);">🎉 WINNER: ${winner.username}! 🎉</h2>
                         <button class="btn-primary" onclick="location.reload()">RETURN TO MENU</button>
