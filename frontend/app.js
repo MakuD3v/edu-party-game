@@ -592,12 +592,12 @@ class AppController {
 
         // Reset local current position
         this.state.currentMazePos = 0;
-        const totalSteps = payload.layout.length || 10;
+        this.state.totalMazeSteps = (payload.layout && payload.layout.length) ? payload.layout.length : 10;
 
         // Update UI
         const counter = document.getElementById('maze-position-counter');
         if (counter) {
-            counter.innerText = `Step: 0 / ${totalSteps}`;
+            counter.innerText = `Step: 0 / ${this.state.totalMazeSteps}`;
         }
 
         // Render initial frame
@@ -737,7 +737,8 @@ class AppController {
         // Find my pos
         if (counter && this.state.user) {
             const myPos = players[this.state.user.id] || 0;
-            counter.innerText = `Step: ${myPos} / ${this.state.totalMazeSteps}`;
+            const total = this.state.totalMazeSteps || 10;
+            counter.innerText = `Step: ${myPos} / ${total}`;
 
             // Check for Checkpoints (Steps 3, 6, 9)
             if ([3, 6, 9].includes(myPos)) {
