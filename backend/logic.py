@@ -97,8 +97,8 @@ class Lobby:
                 "duration": 60
             },
             3: {
-                "name": "MAZE CHALLENGE",
-                "description": "Navigate the maze and solve puzzles!",
+                "name": "TECH SPRINT",
+                "description": "Race to the finish by answering tech questions!",
                 "icon": "🧩",
                 "color": "#F39C12",  # Orange
                 "duration": 90

@@ -1367,7 +1367,8 @@ class AppController {
                 this.state.gameTimer = msg.payload.duration;
                 this.state.currentGame = 3;
                 this.showTutorial(3);
-                break; case 'NEW_QUESTION':
+                break;
+            case 'NEW_QUESTION':
                 console.log('Received NEW_QUESTION:', msg.payload);
                 const question = msg.payload;
                 const questionEl = document.getElementById('math-question');
