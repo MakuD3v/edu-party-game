@@ -389,7 +389,7 @@ class Lobby:
                     "id": pid,
                     "username": player.username,
                     "color": player.color,
-                    "shape": player.shape.value, # Enum to value
+                    "shape": getattr(player.shape, 'value', player.shape), # Safely get value or string
                     "score": score,
                     "last_update": self.last_score_update.get(pid, float('inf'))
                 })
