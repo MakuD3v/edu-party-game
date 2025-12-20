@@ -435,69 +435,29 @@ async def run_game_2(lobby):
     
     # End Game Logic
     await handle_round_ending(lobby)
-            })
-            asyncio.create_task(run_game_3(lobby))
 
 async def run_game_3(lobby):
-    """Run Game 3 (Maze Challenge). Race to finish!"""
-    lobby.init_maze_state()
+    """Run Game 3 (Tech Sprint). Race to finish!"""
+    print(f"[GAME3] Starting Tech Sprint")
+    lobby.init_race_state()
+    questions = lobby.generate_tech_questions()
     
-    # Send maze layout to all
-    maze_layout = lobby.generate_maze()
+    # Send Game Start with Questions
     await lobby.broadcast({
-        "type": "MAZE_START",
+        "type": "GAME_3_START",
         "payload": {
-            "layout": maze_layout,
-            "duration": 90, # 1.5 mins max
-            "players": lobby.maze_state
+            "duration": 90,
+            "questions": questions,
+            "total_steps": 10
         }
     })
     
-    print(f"[GAME3] Sent MAZE_START with {len(lobby.maze_state)} players")
+    # Wait for 90 seconds (or until implementation of early finish)
+    # Simple timer for stability
+    await asyncio.sleep(90)
     
-    # Game Loop checks for winner every second
-    game_active = True
-    ticks = 0
-    winner = None
-    
-    # Adjust timing to account for tutorial/countdown (90 - 8 = 82 seconds)
-    max_ticks = 82
-    
-    while game_active and ticks < max_ticks:
-        await asyncio.sleep(0.5)
-        ticks += 0.5
-        
-        # Check if anyone reached 10 (finish line)
-        for pid, pos in lobby.maze_state.items():
-            if pos >= 10:
-                winner = lobby.players.get(pid)
-                game_active = False
-                break
-                
-        # Broadcast positions periodically
-        if ticks % 2 == 0:
-             await lobby.broadcast({
-                "type": "MAZE_STATE",
-                "payload": lobby.maze_state
-            })
-            
-    # Game Over
-    leaderboard = lobby.get_leaderboard()
-    
-    # Check if Tournament should End (Round 3)
-    current_round = len(lobby.game_history)
-    print(f"[GAME3] Round {current_round} finished")
-    
-    if current_round >= 3:
-        # End Tournament
-        winner_name = winner.username if winner else (leaderboard[0]['username'] if leaderboard else "No One")
-        
-        await lobby.broadcast({
-            "type": "TOURNAMENT_WINNER",
-            "payload": {
-                "winner": winner_name
-            }
-        })
+    # End Game Logic
+    await handle_round_ending(lobby)
         return
 
     # Round End -> Next Game
