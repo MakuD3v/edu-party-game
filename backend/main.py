@@ -17,7 +17,7 @@ from .models import (
     AuthResponse, CreateLobbyRequest, PlayerState, 
     LobbySummary, ShapeEnum, RegisterRequest
 )
-from .logic import manager
+from .logic import manager, Lobby
 from .database import get_db, init_db
 from .db_models import User
 

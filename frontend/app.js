@@ -417,7 +417,7 @@ class AppController {
                     this.state.currentWordIndex++;
 
                     // 3. Update UI (Visual Sync)
-                    const wordDisplay = document.querySelector('#game2-word-display');
+                    const wordDisplay = document.querySelector('#word-display');
                     if (wordDisplay && this.state.typingWords[this.state.currentWordIndex]) {
                         wordDisplay.innerText = this.state.typingWords[this.state.currentWordIndex];
                         document.getElementById('next-word-display').innerText =
