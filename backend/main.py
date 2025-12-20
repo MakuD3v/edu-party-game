@@ -553,8 +553,10 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 # Wait 3 seconds for preview animation
                 await asyncio.sleep(3)
                 
+                # Always start tournament (initialize players) since this is the START_GAME event
+                lobby.start_tournament()
+                
                 if next_game == 1:
-                    lobby.start_tournament() # Reset if starting tournament
                     print(f"[GAME1] Starting Math Quiz")
                     await lobby.broadcast({
                         "type": "GAME_1_START",
