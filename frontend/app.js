@@ -359,8 +359,11 @@ class AppController {
                     return; // No current word
                 }
 
+                console.log(`[Game2] Typed: '${typed}' vs Current: '${current}'`);
+
                 // Only submit if typed matches completely AND has same length
                 if (typed.length === current.length && typed.toLowerCase() === current.toLowerCase()) {
+                    console.log(`[Game2] Match found! Sending SUBMIT_WORD...`);
                     this.net.send('SUBMIT_WORD', {
                         current_word: current,
                         typed_word: typed
