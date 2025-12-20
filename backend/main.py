@@ -600,7 +600,16 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         "type": "ANSWER_RESULT",
                         "payload": {"correct": is_correct}
                     })
-            
+                    
+                    # Send new question
+                    new_q = lobby.generate_math_question()
+                    await websocket.send_json({"type": "NEW_QUESTION", "payload": new_q})
+                    
+                    # Broadcast scores
+                    await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
+                except (ValueError, TypeError):
+                    await websocket.send_json({"type": "ERROR", "msg": "Invalid answer"})
+
             # --- SUBMIT WORD (GAME 2) ---
             elif event_type == "SUBMIT_WORD":
                 if not player.lobby_id:
@@ -632,58 +641,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         "payload": roster_data
                     })
 
-            # --- MAZE MOVE (GAME 3) ---
-            elif event_type == "MAZE_MOVE":
-                if not player.lobby_id:
-                    continue
-                
-                lobby = manager.get_lobby(player.lobby_id)
-                if not lobby or lobby.current_game != 3:
-                    continue
-                    
-                direction = data.get("direction")
-                result = lobby.move_player_maze(player.id, direction)
-                
-                if result["moved"]:
-                    # Broadcast movement to ALL players so they see the avatar move
-                    await lobby.broadcast({
-                        "type": "PLAYER_MOVED",
-                        "payload": {
-                            "player_id": player.id,
-                            "new_pos": result["new_pos"]
-                        }
-                    })
-                    
-                    # If hit checkpoint, notify JUST the player
-                    if result.get("checkpoint"):
-                        await websocket.send_json({
-                            "type": "MAZE_CHECKPOINT",
-                            "payload": result["checkpoint"]
-                        })
-                    
-                    # Send new question
-                    new_q = lobby.generate_math_question()
-                    await websocket.send_json({"type": "NEW_QUESTION", "payload": new_q})
-                    
-                    # Broadcast scores
-                    await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
-                except (ValueError, TypeError):
-                    await websocket.send_json({"type": "ERROR", "msg": "Invalid answer"})
-
-            # --- SUBMIT WORD (GAME 2) ---
-            elif event_type == "SUBMIT_WORD":
-                if not player.lobby_id:
-                    continue
-                
-                lobby = manager.get_lobby(player.lobby_id)
-                if not lobby or lobby.current_game != 2:
-                    continue
-                
-                current_word = data.get("current_word")
-                typed_word = data.get("typed_word")
-                
-                if lobby.check_typed_word(player.id, current_word, typed_word):
-                    await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": True}})
                     await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
                 else:
                     await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": False}})
