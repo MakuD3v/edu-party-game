@@ -451,30 +451,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 # Always start tournament (initialize players) since this is the START_GAME event
                 lobby.start_tournament()
                 
-                if next_game == 1:
-                    print(f"[GAME1] Starting Math Quiz")
-                    await lobby.broadcast({
-                        "type": "GAME_1_START",
-                        "payload": {"duration": 20, "game_info": game_info}
-                    })
-                    asyncio.create_task(run_game_1(lobby))
-                    
-                elif next_game == 2:
-                    print(f"[GAME2] Starting Typing Game")
-                    lobby.player_scores = {pid: 0 for pid in lobby.active_players}
-                    await lobby.broadcast({
-                        "type": "GAME_2_START",
-                        "payload": {"duration": 30, "game_info": game_info}
-                    })
-                    asyncio.create_task(run_game_2(lobby))
-                    
-                elif next_game == 3:
-                    print(f"[GAME3] Starting Maze Challenge")
-                    await lobby.broadcast({
-                        "type": "GAME_3_START",
-                        "payload": {"duration": 90, "game_info": game_info}
-                    })
-                    asyncio.create_task(run_game_3(lobby))
+                # Start the appropriate game (Delegated)
+                asyncio.create_task(run_game(lobby, next_game))
 
 
             # --- SUBMIT ANSWER (GAME 1) ---

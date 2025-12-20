@@ -17,17 +17,12 @@ class RaceGame(BaseGame):
         self.is_active = True
         
         # Initialize positions for ACTIVE players
-        # Note: lobby.maze_state was used before. We use local state now.
-        # But we might need to sync it to lobby if lobby is used for persistent state viewing?
-        # Ideally Lobby just holds Game, Game holds State.
         self.positions = {pid: 0 for pid in self.lobby.active_players}
-        # Clear Lobby's maze_state just in case legacy UI depends on it (though we should update UI to rely on events)
-        # Actually logic.py has `self.maze_state`. Let's assume we replace that usage.
         
         # Generate Tech Questions
         questions = self._generate_tech_questions()
         
-        # Broadcast Start
+        # Broadcast Start (Includes duration and questions)
         await self.lobby.broadcast({
             "type": "GAME_3_START",
             "payload": {

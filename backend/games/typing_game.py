@@ -23,6 +23,12 @@ class TypingGame(BaseGame):
         print(f"[GAME2] TypingGame started")
         self.is_active = True
         
+        # Broadcast Start Event
+        await self.lobby.broadcast({
+            "type": "GAME_2_START",
+            "payload": {"duration": 30}
+        })
+        
         self.words = self._generate_words()
         
         # Broadcast Start

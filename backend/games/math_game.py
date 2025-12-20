@@ -14,6 +14,12 @@ class MathGame(BaseGame):
     async def run(self):
         print(f"[GAME1] MathGame started for Lobby {self.lobby.id}")
         self.is_active = True
+
+        # Broadcast Start Event (Frontend Trigger)
+        await self.lobby.broadcast({
+            "type": "GAME_1_START",
+            "payload": {"duration": 20}
+        })
         
         # 1. Generate & Broadcast Question
         self.current_question = self._generate_question()
