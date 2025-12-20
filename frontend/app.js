@@ -558,122 +558,217 @@ class AppController {
         const canvas = document.getElementById('maze-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        ctx.moveTo(x, y - 20);
-        ctx.lineTo(x - 20, y + 20);
-        ctx.lineTo(x + 20, y + 20);
-        ctx.closePath();
-        ctx.fill();
-        if (isCurrentPlayer) ctx.stroke();
-    }
 
-                // Reset shadow
+        // Resize canvas
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = 400;
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Clear
+        ctx.fillStyle = '#2C3E50';
+        ctx.fillRect(0, 0, w, h);
+
+        // --- 1. Calculate Path Nodes ---
+        const startX = 50;
+        const startY = h / 2;
+        const stepSize = (w - 100) / 10; // 10 steps
+
+        let currentX = startX;
+        let currentY = startY;
+        const nodes = [{ x: startX, y: startY }]; // Step 0
+
+        if (this.state.mazePath) {
+            for (let dir of this.state.mazePath) {
+                let nextX = currentX;
+                let nextY = currentY;
+
+                if (dir === 'right') {
+                    nextX = currentX + stepSize;
+                } else if (dir === 'up') {
+                    nextX = currentX + stepSize;
+                    nextY = currentY - 50;
+                } else if (dir === 'down') {
+                    nextX = currentX + stepSize;
+                    nextY = currentY + 50;
+                }
+
+                // Clamp Y
+                if (nextY < 50) nextY = 50;
+                if (nextY > h - 50) nextY = h - 50;
+
+                nodes.push({ x: nextX, y: nextY });
+                currentX = nextX;
+                currentY = nextY;
+            }
+        }
+
+        // --- 2. Draw Track Line ---
+        ctx.beginPath();
+        if (nodes.length > 0) {
+            ctx.moveTo(nodes[0].x, nodes[0].y);
+            for (let i = 1; i < nodes.length; i++) {
+                ctx.lineTo(nodes[i].x, nodes[i].y);
+            }
+        }
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#7F8C8D';
+        ctx.stroke();
+
+        // --- 3. Draw Nodes & Arrows ---
+        nodes.forEach((node, index) => {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#ECF0F1';
+            ctx.fill();
+
+            // Draw Arrow Hint
+            if (index < this.state.mazePath?.length) {
+                const dir = this.state.mazePath[index];
+                ctx.fillStyle = '#F39C12';
+                ctx.font = '20px Arial';
+                let arrow = '➡';
+                if (dir === 'up') arrow = '↗';
+                if (dir === 'down') arrow = '↘';
+
+                ctx.fillText(arrow, node.x + 10, node.y - 15);
+            }
+        });
+
+        // Finish Line
+        if (nodes.length > 0) {
+            const last = nodes[nodes.length - 1];
+            ctx.font = '30px Arial';
+            ctx.fillText('🏁', last.x, last.y - 20);
+        }
+
+        // --- 4. Draw Players ---
+        const players = this.state.mazePositions || {};
+
+        Object.entries(players).forEach(([pid, pos]) => {
+            if (pos >= nodes.length) pos = nodes.length - 1;
+            const pNode = nodes[pos];
+
+            // Offset slightly
+            const offsetX = (Math.random() - 0.5) * 10;
+            const offsetY = (Math.random() - 0.5) * 10;
+
+            ctx.beginPath();
+            ctx.arc(pNode.x + offsetX, pNode.y + offsetY, 15, 0, Math.PI * 2);
+
+            // Check if it's ME (Use username match if id unavailable)
+            let isMe = false;
+            if (this.state.user && this.state.user.id === pid) isMe = true;
+            // Also check legacy if id map not synced
+            // For now default RED
+
+            if (isMe) {
+                ctx.fillStyle = '#F1C40F'; // Yellow (Me)
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#F1C40F';
+            } else {
+                ctx.fillStyle = '#E74C3C'; // Red (Other)
                 ctx.shadowBlur = 0;
+            }
 
-                // Draw player name with (YOU) label
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-    const displayName = isCurrentPlayer ? `${player.username} (YOU)` : player.username;
-                ctx.fillText(displayName, x, y + 40);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        });
 
-// Update position indicator for current player
-if (isCurrentPlayer) {
-    const posEl = document.getElementById('maze-current-pos');
-    if (posEl) posEl.textContent = position;
-}
-            });
+        // Update Counter
+        const counter = document.getElementById('maze-position-counter');
+        // Find my pos
+        if (counter && this.state.user) {
+            const myPos = players[this.state.user.id] || 0;
+            counter.innerText = `Step: ${myPos} / 10`;
         }
-
-// Draw step numbers
-ctx.fillStyle = '#666';
-ctx.font = '10px Arial';
-for (let i = 0; i <= mazeLength; i += 5) {
-    const x = stepWidth * (i + 0.5);
-    ctx.fillText(i.toString(), x, centerY + 60);
-}
     }
 
-getPlayerInfo(playerId) {
-    // Helper to get player info from lobby roster
-    if (this.state.currentLobbyRoster) {
-        return this.state.currentLobbyRoster.find(p => p.id === playerId);
+    getPlayerInfo(playerId) {
+        // Helper to get player info from lobby roster
+        if (this.state.currentLobbyRoster) {
+            return this.state.currentLobbyRoster.find(p => p.id === playerId);
+        }
+        return null;
     }
-    return null;
-}
 
-showCheckpoint(checkpointData) {
-    if (!checkpointData) return;
+    showCheckpoint(checkpointData) {
+        if (!checkpointData) return;
 
-    this.state.currentCheckpoint = checkpointData;
-    this.state.checkpointLocked = true;
+        this.state.currentCheckpoint = checkpointData;
+        this.state.checkpointLocked = true;
 
-    const popup = document.getElementById('checkpoint-popup');
-    const questionEl = document.getElementById('checkpoint-q');
-    const inputEl = document.getElementById('checkpoint-input');
-
-    if (popup && questionEl && inputEl) {
-        questionEl.textContent = checkpointData.q;
-        inputEl.value = '';
-        popup.classList.remove('hidden');
-        inputEl.focus();
-    }
-}
-
-submitCheckpointAnswer() {
-    const inputEl = document.getElementById('checkpoint-input');
-    const answer = inputEl.value.trim();
-
-    if (!this.state.currentCheckpoint || !answer) return;
-
-    // Simple client-side validation
-    const correctAnswer = this.state.currentCheckpoint.a;
-    const isCorrect = answer.toLowerCase() === correctAnswer.toLowerCase();
-
-    if (isCorrect) {
-        // Hide popup
         const popup = document.getElementById('checkpoint-popup');
-        if (popup) popup.classList.add('hidden');
-
-        // Unlock movement
-        this.state.checkpointLocked = false;
-        this.state.currentCheckpoint = null;
-    } else {
-        // Show error feedback
         const questionEl = document.getElementById('checkpoint-q');
-        if (questionEl) {
-            questionEl.style.color = '#E74C3C';
-            setTimeout(() => {
-                questionEl.style.color = '';
-            }, 500);
+        const inputEl = document.getElementById('checkpoint-input');
+
+        if (popup && questionEl && inputEl) {
+            questionEl.textContent = checkpointData.q;
+            inputEl.value = '';
+            popup.classList.remove('hidden');
+            inputEl.focus();
         }
     }
-}
 
-startGameTimer() {
-    // Determine which timer element to use based on current game
-    const timerElId = this.state.currentGame === 2 ? 'game2-timer' : 'game-timer';
-    const timerEl = document.getElementById(timerElId);
+    submitCheckpointAnswer() {
+        const inputEl = document.getElementById('checkpoint-input');
+        const answer = inputEl.value.trim();
 
-    if (!timerEl) {
-        console.error(`Timer element ${timerElId} not found`);
-        return;
+        if (!this.state.currentCheckpoint || !answer) return;
+
+        // Simple client-side validation
+        const correctAnswer = this.state.currentCheckpoint.a;
+        const isCorrect = answer.toLowerCase() === correctAnswer.toLowerCase();
+
+        if (isCorrect) {
+            // Hide popup
+            const popup = document.getElementById('checkpoint-popup');
+            if (popup) popup.classList.add('hidden');
+
+            // Unlock movement
+            this.state.checkpointLocked = false;
+            this.state.currentCheckpoint = null;
+        } else {
+            // Show error feedback
+            const questionEl = document.getElementById('checkpoint-q');
+            if (questionEl) {
+                questionEl.style.color = '#E74C3C';
+                setTimeout(() => {
+                    questionEl.style.color = '';
+                }, 500);
+            }
+        }
     }
 
-    this.state.timerInterval = setInterval(() => {
-        this.state.gameTimer--;
-        timerEl.textContent = this.state.gameTimer;
+    startGameTimer() {
+        // Determine which timer element to use based on current game
+        const timerElId = this.state.currentGame === 2 ? 'game2-timer' : 'game-timer';
+        const timerEl = document.getElementById(timerElId);
 
-        if (this.state.gameTimer <= 0) {
-            clearInterval(this.state.timerInterval);
+        if (!timerEl) {
+            console.error(`Timer element ${timerElId} not found`);
+            return;
         }
-    }, 1000);
-}
 
-renderLeaderboard(leaderboard) {
-    const container = document.getElementById('game-leaderboard');
-    const spectatorContainer = document.getElementById('spectator-leaderboard');
+        this.state.timerInterval = setInterval(() => {
+            this.state.gameTimer--;
+            timerEl.textContent = this.state.gameTimer;
 
-    const html = leaderboard.map((player, index) => `
+            if (this.state.gameTimer <= 0) {
+                clearInterval(this.state.timerInterval);
+            }
+        }, 1000);
+    }
+
+    renderLeaderboard(leaderboard) {
+        const container = document.getElementById('game-leaderboard');
+        const spectatorContainer = document.getElementById('spectator-leaderboard');
+
+        const html = leaderboard.map((player, index) => `
             <div class="leaderboard-row">
                 <span class="rank">#${index + 1}</span>
                 <span style="flex:1; text-align:left; padding-left:10px;">${player.username}</span>
@@ -681,46 +776,46 @@ renderLeaderboard(leaderboard) {
             </div>
         `).join('');
 
-    container.innerHTML = html;
-    if (spectatorContainer) {
-        spectatorContainer.innerHTML = html;
+        container.innerHTML = html;
+        if (spectatorContainer) {
+            spectatorContainer.innerHTML = html;
+        }
     }
-}
 
-showIntermission(data) {
-    // Check if current player was eliminated
-    const isEliminated = data.eliminated.some(p => p.username === this.state.user.username);
+    showIntermission(data) {
+        // Check if current player was eliminated
+        const isEliminated = data.eliminated.some(p => p.username === this.state.user.username);
 
-    if (isEliminated) {
-        // Show spectator mode
-        this.ui.showScreen('spectator');
-    } else {
-        // Show intermission screen
-        this.ui.showScreen('intermission');
+        if (isEliminated) {
+            // Show spectator mode
+            this.ui.showScreen('spectator');
+        } else {
+            // Show intermission screen
+            this.ui.showScreen('intermission');
 
-        // Render advancing players
-        const advancingHtml = data.advancing.map(p => `
+            // Render advancing players
+            const advancingHtml = data.advancing.map(p => `
                 <div class="player-chip">
                     <span>${p.username}</span>
                     <span class="score">${p.score} pts</span>
                 </div>
             `).join('');
-        document.getElementById('advancing-list').innerHTML = advancingHtml;
+            document.getElementById('advancing-list').innerHTML = advancingHtml;
 
-        // Render eliminated players
-        const eliminatedHtml = data.eliminated.map(p => `
+            // Render eliminated players
+            const eliminatedHtml = data.eliminated.map(p => `
                 <div class="player-chip">
                     <span>${p.username}</span>
                     <span class="score">${p.score} pts</span>
                 </div>
             `).join('');
-        document.getElementById('eliminated-list').innerHTML = eliminatedHtml;
+            document.getElementById('eliminated-list').innerHTML = eliminatedHtml;
 
-        // Show next game info or winner
-        if (data.next_game) {
-            // Display next game info above countdown
-            const nextGameInfo = document.getElementById('next-game-info');
-            nextGameInfo.innerHTML = `
+            // Show next game info or winner
+            if (data.next_game) {
+                // Display next game info above countdown
+                const nextGameInfo = document.getElementById('next-game-info');
+                nextGameInfo.innerHTML = `
                     <div style="font-size:1.3rem; color:#aaa; margin-bottom:10px;">
                         Next Game: <span style="color:var(--school-bus-yellow); font-weight:bold;">${data.next_game.icon} ${data.next_game.name}</span>
                     </div>
@@ -730,435 +825,435 @@ showIntermission(data) {
                     <div style="color:#aaa;">Get ready...</div>
                 `;
 
-            // Start countdown for next game
-            const countdownEl = document.getElementById('next-game-countdown');
-            let countdown = 5; // 5 second countdown
+                // Start countdown for next game
+                const countdownEl = document.getElementById('next-game-countdown');
+                let countdown = 5; // 5 second countdown
 
-            if (countdownEl) {
-                countdownEl.textContent = countdown;
-
-                const countdownInterval = setInterval(() => {
-                    countdown--;
+                if (countdownEl) {
                     countdownEl.textContent = countdown;
 
-                    if (countdown <= 0) {
-                        clearInterval(countdownInterval);
-                        countdownEl.textContent = 'Starting...';
-                    }
-                }, 1000);
-            }
-        } else {
-            // Tournament over, show winner
-            if (data.advancing.length > 0) {
-                const winner = data.advancing[0];
-                const nextGameInfo = document.getElementById('next-game-info');
-                nextGameInfo.innerHTML = `
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        countdownEl.textContent = countdown;
+
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                            countdownEl.textContent = 'Starting...';
+                        }
+                    }, 1000);
+                }
+            } else {
+                // Tournament over, show winner
+                if (data.advancing.length > 0) {
+                    const winner = data.advancing[0];
+                    const nextGameInfo = document.getElementById('next-game-info');
+                    nextGameInfo.innerHTML = `
                         <h2 style="color:var(--school-bus-yellow);">🎉 WINNER: ${winner.username}! 🎉</h2>
                         <button class="btn-primary" onclick="location.reload()">RETURN TO MENU</button>
                     `;
+                }
             }
         }
     }
-}
 
 
-// === TUTORIAL & COUNTDOWN METHODS ===
+    // === TUTORIAL & COUNTDOWN METHODS ===
 
-showTutorial(gameNumber) {
-    const tutorials = {
-        1: {
-            title: "🧮 MATH QUIZ",
-            content: `Answer as many math problems as you can in <strong>20 seconds</strong>!<br><br>
+    showTutorial(gameNumber) {
+        const tutorials = {
+            1: {
+                title: "🧮 MATH QUIZ",
+                content: `Answer as many math problems as you can in <strong>20 seconds</strong>!<br><br>
                          Type your answer and hit <strong>SUBMIT</strong> or press <strong>ENTER</strong>.<br><br>
                          Top half advance to the next round! 🏆`
-        },
-        2: {
-            title: "⌨️ SPEED TYPING",
-            content: `Type the words shown on screen as fast as possible!<br><br>
+            },
+            2: {
+                title: "⌨️ SPEED TYPING",
+                content: `Type the words shown on screen as fast as possible!<br><br>
                          Press <strong>ENTER</strong> after each word.<br><br>
                          You have <strong>60 seconds</strong>. Highest score wins! ⚡`
-        },
-        3: {
-            title: "🧩 MAZE CHALLENGE",
-            content: `Navigate the maze and solve code puzzles at checkpoints!<br><br>
+            },
+            3: {
+                title: "🧩 MAZE CHALLENGE",
+                content: `Navigate the maze and solve code puzzles at checkpoints!<br><br>
                          Use <strong>Arrow Keys</strong> to move.<br><br>
                          <strong>FIRST</strong> player to reach the end wins the TOURNAMENT! 🎉`
-        }
-    };
+            }
+        };
 
-    const tutorial = tutorials[gameNumber];
-    if (!tutorial) return;
+        const tutorial = tutorials[gameNumber];
+        if (!tutorial) return;
 
-    document.getElementById('tutorial-title').textContent = tutorial.title;
-    document.getElementById('tutorial-content').innerHTML = tutorial.content;
-    document.getElementById('tutorial-modal').classList.remove('hidden');
+        document.getElementById('tutorial-title').textContent = tutorial.title;
+        document.getElementById('tutorial-content').innerHTML = tutorial.content;
+        document.getElementById('tutorial-modal').classList.remove('hidden');
 
-    // Auto-dismiss countdown (5 seconds)
-    let secondsLeft = 5;
-    const countdownEl = document.getElementById('tutorial-countdown');
-    countdownEl.textContent = secondsLeft;
-
-    const interval = setInterval(() => {
-        secondsLeft--;
+        // Auto-dismiss countdown (5 seconds)
+        let secondsLeft = 5;
+        const countdownEl = document.getElementById('tutorial-countdown');
         countdownEl.textContent = secondsLeft;
 
-        if (secondsLeft <= 0) {
-            clearInterval(interval);
-            document.getElementById('tutorial-modal').classList.add('hidden');
-            // After tutorial, show countdown then start game
-            this.showCountdown().then(() => {
-                // Start the actual game after countdown - use currentGame to determine screen
-                const screenName = `game${this.state.currentGame}`;
-                this.ui.showScreen(screenName);
-                const timerEl = document.getElementById('game-timer');
-                if (timerEl) {
-                    timerEl.textContent = this.state.gameTimer;
-                }
-                this.startGameTimer();
-                console.log(`Game ${this.state.currentGame} started after tutorial + countdown`);
-            });
-        }
-    }, 1000);
-}
+        const interval = setInterval(() => {
+            secondsLeft--;
+            countdownEl.textContent = secondsLeft;
+
+            if (secondsLeft <= 0) {
+                clearInterval(interval);
+                document.getElementById('tutorial-modal').classList.add('hidden');
+                // After tutorial, show countdown then start game
+                this.showCountdown().then(() => {
+                    // Start the actual game after countdown - use currentGame to determine screen
+                    const screenName = `game${this.state.currentGame}`;
+                    this.ui.showScreen(screenName);
+                    const timerEl = document.getElementById('game-timer');
+                    if (timerEl) {
+                        timerEl.textContent = this.state.gameTimer;
+                    }
+                    this.startGameTimer();
+                    console.log(`Game ${this.state.currentGame} started after tutorial + countdown`);
+                });
+            }
+        }, 1000);
+    }
 
     async showCountdown() {
-    const overlay = document.getElementById('countdown-overlay');
-    const numberEl = document.getElementById('countdown-number');
+        const overlay = document.getElementById('countdown-overlay');
+        const numberEl = document.getElementById('countdown-number');
 
-    overlay.classList.remove('hidden');
+        overlay.classList.remove('hidden');
 
-    for (let i = 3; i > 0; i--) {
-        numberEl.textContent = i;
-        numberEl.style.animation = 'none';
-        // Force reflow to restart animation
-        void numberEl.offsetWidth;
-        numberEl.style.animation = 'countdownPulse 1s ease-in-out';
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        for (let i = 3; i > 0; i--) {
+            numberEl.textContent = i;
+            numberEl.style.animation = 'none';
+            // Force reflow to restart animation
+            void numberEl.offsetWidth;
+            numberEl.style.animation = 'countdownPulse 1s ease-in-out';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        overlay.classList.add('hidden');
     }
 
-    overlay.classList.add('hidden');
-}
+    showGamePreview(data) {
+        const overlay = document.getElementById('game-preview-overlay');
+        const icon = document.getElementById('preview-game-icon');
+        const name = document.getElementById('preview-game-name');
+        const description = document.getElementById('preview-game-description');
+        const roundNumber = document.getElementById('preview-round-number');
 
-showGamePreview(data) {
-    const overlay = document.getElementById('game-preview-overlay');
-    const icon = document.getElementById('preview-game-icon');
-    const name = document.getElementById('preview-game-name');
-    const description = document.getElementById('preview-game-description');
-    const roundNumber = document.getElementById('preview-round-number');
+        // Update content
+        const gameInfo = data.game_info;
+        icon.textContent = gameInfo.icon;
+        name.textContent = gameInfo.name;
+        description.textContent = gameInfo.description;
+        roundNumber.textContent = data.round_number;
 
-    // Update content
-    const gameInfo = data.game_info;
-    icon.textContent = gameInfo.icon;
-    name.textContent = gameInfo.name;
-    description.textContent = gameInfo.description;
-    roundNumber.textContent = data.round_number;
+        // Dynamic background based on game color
+        const colorMap = {
+            '#E74C3C': 'linear-gradient(135deg, rgba(231, 76, 60, 0.95) 0%, rgba(192, 57, 43, 0.95) 100%)', // Red for Math
+            '#3498DB': 'linear-gradient(135deg, rgba(52, 152, 219, 0.95) 0%, rgba(41, 128, 185, 0.95) 100%)', // Blue for Typing
+            '#F39C12': 'linear-gradient(135deg, rgba(243, 156, 18, 0.95) 0%, rgba(211, 84, 0, 0.95) 100%)' // Orange for Maze
+        };
+        overlay.style.background = colorMap[gameInfo.color] || colorMap['#3498DB'];
 
-    // Dynamic background based on game color
-    const colorMap = {
-        '#E74C3C': 'linear-gradient(135deg, rgba(231, 76, 60, 0.95) 0%, rgba(192, 57, 43, 0.95) 100%)', // Red for Math
-        '#3498DB': 'linear-gradient(135deg, rgba(52, 152, 219, 0.95) 0%, rgba(41, 128, 185, 0.95) 100%)', // Blue for Typing
-        '#F39C12': 'linear-gradient(135deg, rgba(243, 156, 18, 0.95) 0%, rgba(211, 84, 0, 0.95) 100%)' // Orange for Maze
-    };
-    overlay.style.background = colorMap[gameInfo.color] || colorMap['#3498DB'];
+        // Show overlay
+        overlay.classList.remove('hidden');
 
-    // Show overlay
-    overlay.classList.remove('hidden');
+        // Auto-hide after 3 seconds (backend waits 3 seconds)
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 3000);
+    }
 
-    // Auto-hide after 3 seconds (backend waits 3 seconds)
-    setTimeout(() => {
-        overlay.classList.add('hidden');
-    }, 3000);
-}
+    handleServerEvent(msg) {
+        console.log('[Event]', msg);
 
-handleServerEvent(msg) {
-    console.log('[Event]', msg);
-
-    switch (msg.type) {
-        case 'LOBBY_JOINED':
-            // Reset ready state when joining a lobby
-            this.state.isReady = false;
-            this.updateReadyButton();
-
-            this.ui.showScreen('lobby');
-            document.getElementById('lobby-title-id').textContent = '#' + msg.payload.id;
-            document.getElementById('lobby-host-name').textContent = 'Host: ' + msg.payload.host_name;
-
-            // Show start button and test mode button if user is host
-            const startBtn = document.getElementById('btn-start');
-            const testBtn = document.getElementById('btn-test-mode');
-
-            if (msg.payload.host_name === this.state.user.username) {
-                startBtn.style.display = 'inline-block';
-                testBtn.style.display = 'inline-block'; // Show test mode for host
-                // Initialize as disabled/grayed
-                startBtn.disabled = true;
-                startBtn.style.background = '#555';
-                startBtn.style.opacity = '0.5';
-                startBtn.style.cursor = 'not-allowed';
-            } else {
-                startBtn.style.display = 'none';
-                testBtn.style.display = 'none';
-            }
-            break;
-
-        case 'ROSTER_UPDATE':
-            this.ui.renderRoster(msg.payload);
-
-            // Store roster for Game 3 player rendering
-            this.state.currentLobbyRoster = msg.payload;
-
-            // Update player's own ready state from roster
-            const currentPlayer = msg.payload.find(p => p.username === this.state.user.username);
-            if (currentPlayer) {
-                this.state.isReady = currentPlayer.is_ready;
+        switch (msg.type) {
+            case 'LOBBY_JOINED':
+                // Reset ready state when joining a lobby
+                this.state.isReady = false;
                 this.updateReadyButton();
-            }
 
-            // Update start button state for host
-            const startButton = document.getElementById('btn-start');
-            if (startButton.style.display !== 'none') {
-                // Check if all players are ready
-                const allReady = msg.payload.every(p => p.is_ready);
-                const hasPlayers = msg.payload.length > 1;
-                const canStart = allReady && hasPlayers;
-                startButton.disabled = !canStart;
+                this.ui.showScreen('lobby');
+                document.getElementById('lobby-title-id').textContent = '#' + msg.payload.id;
+                document.getElementById('lobby-host-name').textContent = 'Host: ' + msg.payload.host_name;
 
-                // Update visual state
-                if (canStart) {
-                    startButton.style.background = '#F39C12'; // Orange - lit up
-                    startButton.style.opacity = '1';
-                    startButton.style.cursor = 'pointer';
+                // Show start button and test mode button if user is host
+                const startBtn = document.getElementById('btn-start');
+                const testBtn = document.getElementById('btn-test-mode');
+
+                if (msg.payload.host_name === this.state.user.username) {
+                    startBtn.style.display = 'inline-block';
+                    testBtn.style.display = 'inline-block'; // Show test mode for host
+                    // Initialize as disabled/grayed
+                    startBtn.disabled = true;
+                    startBtn.style.background = '#555';
+                    startBtn.style.opacity = '0.5';
+                    startBtn.style.cursor = 'not-allowed';
                 } else {
-                    startButton.style.background = '#555'; // Gray
-                    startButton.style.opacity = '0.5';
-                    startButton.style.cursor = 'not-allowed';
+                    startBtn.style.display = 'none';
+                    testBtn.style.display = 'none';
                 }
-            }
-            break;
+                break;
 
-        case 'LOBBY_LEFT':
-            this.ui.showScreen('home');
-            this.refreshLobbyList();
-            break;
+            case 'ROSTER_UPDATE':
+                this.ui.renderRoster(msg.payload);
 
-        case 'PROFILE_ACK':
-            const p = msg.payload;
-            this.state.user.color = p.color;
-            this.state.user.shape = p.shape;
-            this.ui.updateBadge(p.username, p.color, p.shape);
-            break;
+                // Store roster for Game 3 player rendering
+                this.state.currentLobbyRoster = msg.payload;
 
-        // === GAME EVENTS ===
+                // Update player's own ready state from roster
+                const currentPlayer = msg.payload.find(p => p.username === this.state.user.username);
+                if (currentPlayer) {
+                    this.state.isReady = currentPlayer.is_ready;
+                    this.updateReadyButton();
+                }
 
-        // EDU PARTY Educational Mayhem game preview
-        case 'GAME_PREVIEW':
-            console.log('GAME_PREVIEW received:', msg.payload);
-            this.showGamePreview(msg.payload);
-            break;
+                // Update start button state for host
+                const startButton = document.getElementById('btn-start');
+                if (startButton.style.display !== 'none') {
+                    // Check if all players are ready
+                    const allReady = msg.payload.every(p => p.is_ready);
+                    const hasPlayers = msg.payload.length > 1;
+                    const canStart = allReady && hasPlayers;
+                    startButton.disabled = !canStart;
 
-        case 'GAME_1_START':
-            console.log('GAME_1_START received:', msg.payload);
+                    // Update visual state
+                    if (canStart) {
+                        startButton.style.background = '#F39C12'; // Orange - lit up
+                        startButton.style.opacity = '1';
+                        startButton.style.cursor = 'pointer';
+                    } else {
+                        startButton.style.background = '#555'; // Gray
+                        startButton.style.opacity = '0.5';
+                        startButton.style.cursor = 'not-allowed';
+                    }
+                }
+                break;
 
-            // Store game state
-            this.state.gameTimer = msg.payload.duration;
-            this.state.currentGame = 1;
+            case 'LOBBY_LEFT':
+                this.ui.showScreen('home');
+                this.refreshLobbyList();
+                break;
 
-            // Show tutorial first
-            this.showTutorial(1);
-            break;
+            case 'PROFILE_ACK':
+                const p = msg.payload;
+                this.state.user.color = p.color;
+                this.state.user.shape = p.shape;
+                this.ui.updateBadge(p.username, p.color, p.shape);
+                break;
+
+            // === GAME EVENTS ===
+
+            // EDU PARTY Educational Mayhem game preview
+            case 'GAME_PREVIEW':
+                console.log('GAME_PREVIEW received:', msg.payload);
+                this.showGamePreview(msg.payload);
+                break;
+
+            case 'GAME_1_START':
+                console.log('GAME_1_START received:', msg.payload);
+
+                // Store game state
+                this.state.gameTimer = msg.payload.duration;
+                this.state.currentGame = 1;
+
+                // Show tutorial first
+                this.showTutorial(1);
+                break;
 
 
-        case 'GAME_2_START':
-            console.log('GAME_2_START received:', msg.payload);
-            this.state.gameTimer = msg.payload.duration;
-            this.state.currentGame = 2;
-            this.showTutorial(2);
-            break;
+            case 'GAME_2_START':
+                console.log('GAME_2_START received:', msg.payload);
+                this.state.gameTimer = msg.payload.duration;
+                this.state.currentGame = 2;
+                this.showTutorial(2);
+                break;
 
-        case 'GAME_3_START':
-            console.log('GAME_3_START received:', msg.payload);
-            this.state.gameTimer = msg.payload.duration;
-            this.state.currentGame = 3;
-            this.showTutorial(3);
-            break; case 'NEW_QUESTION':
-            console.log('Received NEW_QUESTION:', msg.payload);
-            const question = msg.payload;
-            const questionEl = document.getElementById('math-question');
-            const answerEl = document.getElementById('math-answer');
-            const feedbackEl = document.getElementById('answer-feedback');
+            case 'GAME_3_START':
+                console.log('GAME_3_START received:', msg.payload);
+                this.state.gameTimer = msg.payload.duration;
+                this.state.currentGame = 3;
+                this.showTutorial(3);
+                break; case 'NEW_QUESTION':
+                console.log('Received NEW_QUESTION:', msg.payload);
+                const question = msg.payload;
+                const questionEl = document.getElementById('math-question');
+                const answerEl = document.getElementById('math-answer');
+                const feedbackEl = document.getElementById('answer-feedback');
 
-            if (questionEl && question && question.text) {
-                questionEl.textContent = question.text + ' = ?';
-                console.log('Question displayed:', question.text);
-            } else {
-                console.error('Failed to display question', { questionEl, question });
-            }
-
-            if (answerEl) {
-                answerEl.value = '';
-                answerEl.focus();
-            }
-
-            if (feedbackEl) {
-                feedbackEl.textContent = '';
-            }
-            break;
-
-        case 'ANSWER_RESULT':
-            console.log('Received ANSWER_RESULT:', msg.payload);
-            const feedback = document.getElementById('answer-feedback');
-            if (feedback) {
-                if (msg.payload.correct) {
-                    feedback.innerHTML = '<strong style="font-size:1.5rem;">✅ CORRECT!</strong>';
-                    feedback.style.color = '#2ECC71';
+                if (questionEl && question && question.text) {
+                    questionEl.textContent = question.text + ' = ?';
+                    console.log('Question displayed:', question.text);
                 } else {
-                    feedback.innerHTML = '<strong style="font-size:1.5rem;">❌ WRONG</strong>';
-                    feedback.style.color = '#E74C3C';
+                    console.error('Failed to display question', { questionEl, question });
                 }
-                // Clear feedback after 2 seconds (longer for visibility)
-                setTimeout(() => {
-                    feedback.textContent = '';
-                }, 2000);
-            } else {
-                console.error('Feedback element not found');
-            }
-            break;
 
-        // === GAME 2 EVENTS ===
-
-        case 'NEW_WORDS':
-            console.log('Received NEW_WORDS:', msg.payload);
-            this.state.typingWords = msg.payload.words || [];
-            this.state.currentWordIndex = 0;
-
-            // Display first word
-            if (this.state.typingWords.length > 0) {
-                const wordDisplay = document.getElementById('word-display');
-                const nextWordDisplay = document.getElementById('next-word-display');
-                const typingInput = document.getElementById('typing-input');
-
-                if (wordDisplay) {
-                    wordDisplay.textContent = this.state.typingWords[0];
+                if (answerEl) {
+                    answerEl.value = '';
+                    answerEl.focus();
                 }
-                if (nextWordDisplay && this.state.typingWords.length > 1) {
-                    nextWordDisplay.textContent = `Next: ${this.state.typingWords[1]}`;
+
+                if (feedbackEl) {
+                    feedbackEl.textContent = '';
                 }
-                if (typingInput) {
-                    typingInput.value = '';
-                    typingInput.focus();
+                break;
+
+            case 'ANSWER_RESULT':
+                console.log('Received ANSWER_RESULT:', msg.payload);
+                const feedback = document.getElementById('answer-feedback');
+                if (feedback) {
+                    if (msg.payload.correct) {
+                        feedback.innerHTML = '<strong style="font-size:1.5rem;">✅ CORRECT!</strong>';
+                        feedback.style.color = '#2ECC71';
+                    } else {
+                        feedback.innerHTML = '<strong style="font-size:1.5rem;">❌ WRONG</strong>';
+                        feedback.style.color = '#E74C3C';
+                    }
+                    // Clear feedback after 2 seconds (longer for visibility)
+                    setTimeout(() => {
+                        feedback.textContent = '';
+                    }, 2000);
+                } else {
+                    console.error('Feedback element not found');
                 }
-            }
-            break;
+                break;
 
-        case 'WORD_RESULT':
-            const wordResult = msg.payload;
-            const typingInput = document.getElementById('typing-input');
+            // === GAME 2 EVENTS ===
 
-            if (wordResult.correct) {
-                // Move to next word
-                this.state.currentWordIndex++;
+            case 'NEW_WORDS':
+                console.log('Received NEW_WORDS:', msg.payload);
+                this.state.typingWords = msg.payload.words || [];
+                this.state.currentWordIndex = 0;
 
-                if (this.state.currentWordIndex < this.state.typingWords.length) {
+                // Display first word
+                if (this.state.typingWords.length > 0) {
                     const wordDisplay = document.getElementById('word-display');
                     const nextWordDisplay = document.getElementById('next-word-display');
+                    const typingInput = document.getElementById('typing-input');
 
                     if (wordDisplay) {
-                        wordDisplay.textContent = this.state.typingWords[this.state.currentWordIndex];
+                        wordDisplay.textContent = this.state.typingWords[0];
                     }
-                    if (nextWordDisplay && this.state.currentWordIndex + 1 < this.state.typingWords.length) {
-                        nextWordDisplay.textContent = `Next: ${this.state.typingWords[this.state.currentWordIndex + 1]}`;
-                    } else if (nextWordDisplay) {
-                        nextWordDisplay.textContent = '';
+                    if (nextWordDisplay && this.state.typingWords.length > 1) {
+                        nextWordDisplay.textContent = `Next: ${this.state.typingWords[1]}`;
+                    }
+                    if (typingInput) {
+                        typingInput.value = '';
+                        typingInput.focus();
+                    }
+                }
+                break;
+
+            case 'WORD_RESULT':
+                const wordResult = msg.payload;
+                const typingInput = document.getElementById('typing-input');
+
+                if (wordResult.correct) {
+                    // Move to next word
+                    this.state.currentWordIndex++;
+
+                    if (this.state.currentWordIndex < this.state.typingWords.length) {
+                        const wordDisplay = document.getElementById('word-display');
+                        const nextWordDisplay = document.getElementById('next-word-display');
+
+                        if (wordDisplay) {
+                            wordDisplay.textContent = this.state.typingWords[this.state.currentWordIndex];
+                        }
+                        if (nextWordDisplay && this.state.currentWordIndex + 1 < this.state.typingWords.length) {
+                            nextWordDisplay.textContent = `Next: ${this.state.typingWords[this.state.currentWordIndex + 1]}`;
+                        } else if (nextWordDisplay) {
+                            nextWordDisplay.textContent = '';
+                        }
+                    } else {
+                        // Finished all words
+                        const wordDisplay = document.getElementById('word-display');
+                        if (wordDisplay) wordDisplay.textContent = 'FINISHED!';
+                    }
+
+                    // Clear input
+                    if (typingInput) {
+                        typingInput.value = '';
+                        typingInput.style.borderColor = '#2ECC71'; // Green flash
+                        setTimeout(() => {
+                            typingInput.style.borderColor = '';
+                        }, 300);
                     }
                 } else {
-                    // Finished all words
-                    const wordDisplay = document.getElementById('word-display');
-                    if (wordDisplay) wordDisplay.textContent = 'FINISHED!';
+                    // Wrong word - flash red
+                    if (typingInput) {
+                        typingInput.style.borderColor = '#E74C3C';
+                        setTimeout(() => {
+                            typingInput.style.borderColor = '';
+                        }, 300);
+                    }
                 }
+                break;
 
-                // Clear input
-                if (typingInput) {
-                    typingInput.value = '';
-                    typingInput.style.borderColor = '#2ECC71'; // Green flash
-                    setTimeout(() => {
-                        typingInput.style.borderColor = '';
-                    }, 300);
+            case 'SCORE_UPDATE':
+                this.renderLeaderboard(msg.payload);
+                break;
+
+            case 'ROUND_END':
+                clearInterval(this.state.timerInterval);
+                this.showIntermission(msg.payload);
+                break;
+
+            // === GAME 3 EVENTS ===
+
+            case 'MAZE_START':
+                console.log('MAZE_START received:', msg.payload);
+                this.state.currentGame = 3;
+
+                // Ensure game3 screen is visible
+                this.ui.showScreen('game3');
+
+                // Wait for DOM to be ready, then initialize
+                setTimeout(() => {
+                    console.log('Initializing maze game...');
+                    this.initMazeGame(msg.payload);
+                }, 100);
+                break;
+
+            case 'PLAYER_MOVED':
+                // Another player moved, update their position
+                if (this.state.mazePositions) {
+                    this.state.mazePositions[msg.payload.player_id] = msg.payload.new_pos;
+                    this.renderMaze();
                 }
-            } else {
-                // Wrong word - flash red
-                if (typingInput) {
-                    typingInput.style.borderColor = '#E74C3C';
-                    setTimeout(() => {
-                        typingInput.style.borderColor = '';
-                    }, 300);
-                }
-            }
-            break;
+                break;
 
-        case 'SCORE_UPDATE':
-            this.renderLeaderboard(msg.payload);
-            break;
+            case 'MAZE_CHECKPOINT':
+                // Show checkpoint puzzle
+                this.showCheckpoint(msg.payload);
+                break;
 
-        case 'ROUND_END':
-            clearInterval(this.state.timerInterval);
-            this.showIntermission(msg.payload);
-            break;
-
-        // === GAME 3 EVENTS ===
-
-        case 'MAZE_START':
-            console.log('MAZE_START received:', msg.payload);
-            this.state.currentGame = 3;
-
-            // Ensure game3 screen is visible
-            this.ui.showScreen('game3');
-
-            // Wait for DOM to be ready, then initialize
-            setTimeout(() => {
-                console.log('Initializing maze game...');
-                this.initMazeGame(msg.payload);
-            }, 100);
-            break;
-
-        case 'PLAYER_MOVED':
-            // Another player moved, update their position
-            if (this.state.mazePositions) {
-                this.state.mazePositions[msg.payload.player_id] = msg.payload.new_pos;
+            case 'MAZE_STATE':
+                // Periodic sync of all player positions
+                this.state.mazePositions = msg.payload;
                 this.renderMaze();
-            }
-            break;
+                break;
 
-        case 'MAZE_CHECKPOINT':
-            // Show checkpoint puzzle
-            this.showCheckpoint(msg.payload);
-            break;
+            case 'TOURNAMENT_WINNER':
+                // Game 3 tournament winner
+                clearInterval(this.state.timerInterval);
+                const winnerOverlay = document.getElementById('winner-overlay');
+                const winnerName = document.getElementById('winner-name');
+                if (winnerOverlay && winnerName) {
+                    winnerName.textContent = msg.payload.winner;
+                    winnerOverlay.classList.remove('hidden');
+                    // Add some confetti effect or animation here if desired in future
+                } else {
+                    alert(`🏆 TOURNAMENT WINNER: ${msg.payload.winner}! 🏆`);
+                    setTimeout(() => location.reload(), 3000);
+                }
+                break;
 
-        case 'MAZE_STATE':
-            // Periodic sync of all player positions
-            this.state.mazePositions = msg.payload;
-            this.renderMaze();
-            break;
-
-        case 'TOURNAMENT_WINNER':
-            // Game 3 tournament winner
-            clearInterval(this.state.timerInterval);
-            const winnerOverlay = document.getElementById('winner-overlay');
-            const winnerName = document.getElementById('winner-name');
-            if (winnerOverlay && winnerName) {
-                winnerName.textContent = msg.payload.winner;
-                winnerOverlay.classList.remove('hidden');
-                // Add some confetti effect or animation here if desired in future
-            } else {
-                alert(`🏆 TOURNAMENT WINNER: ${msg.payload.winner}! 🏆`);
-                setTimeout(() => location.reload(), 3000);
-            }
-            break;
-
-        case 'ERROR':
-            alert(msg.msg);
-            break;
+            case 'ERROR':
+                alert(msg.msg);
+                break;
+        }
     }
-}
 }
 
 // MAIN ENTRY POINT
