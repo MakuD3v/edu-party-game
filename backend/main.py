@@ -150,8 +150,6 @@ async def run_game_1(lobby):
             except Exception as e:
                 print(f"[GAME1] Failed to send question to {player.username}: {e}")
                 pass
-    
-                })
                 print(f"[GAME1] Sent question {i} to {player.username}")
             except Exception as e:
                 print(f"[GAME1] Failed to send question to {player.username}: {e}")
