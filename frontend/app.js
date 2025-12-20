@@ -686,7 +686,7 @@ class AppController {
             return;
         }
 
-        document.getElementById('quiz-question').innerText = qData.q;
+        document.getElementById('quiz-question').innerText = qData.text;
 
         const opts = document.querySelectorAll('.quiz-btn');
         if (opts.length >= 4 && qData.options) {

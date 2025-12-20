@@ -234,6 +234,7 @@ async def handle_round_ending(lobby):
     # Normal Round End -> Next Game
     
     # Get next game info for display
+    next_game_number = lobby.select_next_game()
     next_game_info = lobby.get_game_info(next_game_number) if lobby.active_players else None
     
     # Broadcast round end
@@ -456,116 +457,25 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
 
 
             # --- SUBMIT ANSWER (GAME 1) ---
-            elif event_type == "SUBMIT_ANSWER":
-                if not player.lobby_id:
-                    continue
-                
-                lobby = manager.get_lobby(player.lobby_id)
-                if not lobby or lobby.current_game != 1:
-                    continue
-                
-                try:
-                    answer = int(data.get("answer"))
-                    is_correct = lobby.check_answer(player.id, answer)
-                    
-                    # Notify player
-                    await websocket.send_json({
-                        "type": "ANSWER_RESULT",
-                        "payload": {"correct": is_correct}
-                    })
-                    
-                    # Send new question
-                    new_q = lobby.generate_math_question()
-                    await websocket.send_json({"type": "NEW_QUESTION", "payload": new_q})
-                    
-                    # Broadcast scores
-                    await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
-                except (ValueError, TypeError):
-                    await websocket.send_json({"type": "ERROR", "msg": "Invalid answer"})
 
-            # --- SUBMIT WORD (GAME 2) ---
-            elif event_type == "SUBMIT_WORD":
-                if not player.lobby_id:
-                    continue
-                
-                lobby = manager.get_lobby(player.lobby_id)
-                if not lobby or lobby.current_game != 2:
-                    continue
-                    
-                current_word = data.get("current_word")
-                typed_word = data.get("typed_word")
-                
-                is_correct = lobby.check_typed_word(player.id, current_word, typed_word)
-                
-                # Notify player of result
-                await websocket.send_json({
-                    "type": "WORD_RESULT",
-                    "payload": {
-                        "correct": is_correct,
-                        "word": typed_word
-                    }
-                })
-                
-                # If correct, broadcast score update to everyone (active & spectators)
-                if is_correct:
-                    roster_data = lobby.get_leaderboard()
-                    await lobby.broadcast({
-                        "type": "SCORE_UPDATE",
-                        "payload": roster_data
-                    })
-
-
-
-            # --- MAZE ACTIONS (GAME 3) ---
-            # --- GAME 3: SUBMIT RACE ANSWER ---
-            elif event_type == "SUBMIT_RACE_ANSWER":
+            # --- GAME INPUT HANDLING (Delegated) ---
+            elif event_type in ["SUBMIT_ANSWER", "SUBMIT_WORD", "SUBMIT_RACE_ANSWER"]:
                 if not player.lobby_id: continue
                 lobby = manager.get_lobby(player.lobby_id)
-                if not lobby or lobby.current_game != 3: continue
+                if not lobby: continue
                 
-                # Check Answer
-                is_correct = data.get("is_correct", False) # Frontend validates against question data? 
-                # Better: Backend validates. But frontend has questions.
-                # Let's trust frontend for speed (MVP) OR send index.
-                # User Plan: "make it easier...". 
-                # To be robust, backend should check. But `generate_tech_questions` didn't store Key in Lobby.
-                # I will trust the "is_correct" flag for this rapid prototype, 
-                # OR better: pass `question_index` and `answer_index`.
+                # Delegate all game input to the active Game Strategy
+                await lobby.handle_game_input(player.id, data)
                 
-                # Let's use the explicit `handle_race_answer` which expects boolean 
-                # because `generate_tech_questions` returned pool but didn't save it to `lobby.current_questions`.
-                # Wait, I should save it.
-                
-                # REVISIT: I'll trust `is_correct` from client for now to match the speed requirement.
-                # (Security risk but acceptable for MVP).
-                
-                is_correct = data.get("is_correct")
-                
-                result = lobby.handle_race_answer(player.id, is_correct)
-                
-                # Reply to player
-                await websocket.send_json({
-                    "type": "ANSWER_RESULT",
-                    "payload": {
-                        "correct": is_correct,
-                        "new_pos": result["new_pos"]
-                    }
-                })
-                
-                # Broadcast movement if moved
-                if result["moved"]:
-                    await lobby.broadcast({
-                        "type": "MAZE_STATE", # Reusing event for compatibility with minimal frontend change if possible?
-                        # No, let's use PLAYER_MOVED for animation.
-                        "type": "PLAYER_MOVED", 
-                         "payload": {
-                            "player_id": player.id,
-                            "new_pos": result["new_pos"]
-                        }
-                    })
+            # --- LEGACY / OTHER EVENTS ---
+            elif event_type == "MAZE_MOVE": # Checkpoint maze (Game 3 alternate)
+                 if not player.lobby_id: continue
+                 lobby = manager.get_lobby(player.lobby_id)
+                 if lobby:
+                     # lobby.handle_maze_move(player.id, data.get("direction"))
+                     pass
 
     except WebSocketDisconnect:
-        # 3. Cleanup Phase
         manager.unregister(player.id)
         if player.lobby_id:
             lobby = manager.get_lobby(player.lobby_id)
