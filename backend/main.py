@@ -458,58 +458,7 @@ async def run_game_3(lobby):
     
     # End Game Logic
     await handle_round_ending(lobby)
-        return
 
-    # Round End -> Next Game
-    # Standard logic for advancing (though Game 3 is usually last, dynamic logic allows it to be 1 or 2)
-    advancing, eliminated = lobby.advance_players()
-    
-    next_game_number = lobby.select_next_game()
-    next_game_info = Lobby.get_game_info(next_game_number) if lobby.active_players else None
-
-    # Get player info for results (reconstruct list)
-    advancing_players = []
-    eliminated_players = []
-    for pid in advancing:
-        if pid in lobby.players:
-            p = lobby.players[pid]
-            advancing_players.append({
-                'username': p.username, 
-                'score': lobby.player_scores.get(pid, 0),
-                'color': p.color,
-                'shape': p.shape.value
-            })
-            
-    await lobby.broadcast({
-        "type": "ROUND_END",
-        "payload": {
-            "advancing": advancing_players,
-            "eliminated": eliminated_players,
-            "next_game": next_game_info
-        }
-    })
-
-    # Integrate Next Game Logic
-    if lobby.active_players and next_game_info:
-        lobby.current_game = next_game_number
-        await asyncio.sleep(5)
-        
-        await lobby.broadcast({
-            "type": "GAME_PREVIEW",
-            "payload": {
-                "game_number": next_game_number,
-                "game_info": next_game_info,
-                "round_number": len(lobby.game_history)
-            }
-        })
-        await asyncio.sleep(3)
-        
-        if next_game_number == 1:
-            await lobby.broadcast({"type": "GAME_1_START", "payload": {"duration": 20, "game_info": next_game_info}})
-            asyncio.create_task(run_game_1(lobby))
-        elif next_game_number == 2:
-            await lobby.broadcast({"type": "GAME_2_START", "payload": {"duration": 30, "game_info": next_game_info}})
-            asyncio.create_task(run_game_2(lobby))
 
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():
