@@ -794,22 +794,22 @@ class AppController {
             this.ui.showScreen('intermission');
 
             // Render advancing players
-            const advancingHtml = data.advancing.map(p => `
+            const advancingHtml = (data.advancing || []).map(p => `
                 <div class="player-chip">
                     <span>${p.username}</span>
                     <span class="score">${p.score} pts</span>
                 </div>
             `).join('');
-            document.getElementById('advancing-list').innerHTML = advancingHtml;
+            document.getElementById('advancing-list').innerHTML = advancingHtml || '<div class="no-players">None</div>';
 
             // Render eliminated players
-            const eliminatedHtml = data.eliminated.map(p => `
+            const eliminatedHtml = (data.eliminated || []).map(p => `
                 <div class="player-chip">
                     <span>${p.username}</span>
                     <span class="score">${p.score} pts</span>
                 </div>
             `).join('');
-            document.getElementById('eliminated-list').innerHTML = eliminatedHtml;
+            document.getElementById('eliminated-list').innerHTML = eliminatedHtml || '<div class="no-players">None</div>';
 
             // Show next game info or winner
             if (data.next_game) {
