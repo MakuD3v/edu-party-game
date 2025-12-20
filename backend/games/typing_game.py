@@ -29,6 +29,9 @@ class TypingGame(BaseGame):
             "payload": {"duration": 30}
         })
         
+        # Give delay for frontend transition
+        await asyncio.sleep(2)
+        
         self.words = self._generate_words()
         
         # Broadcast Start
@@ -47,8 +50,9 @@ class TypingGame(BaseGame):
         if not self.is_active:
             return
             
-        target_word = data.get("word", "").strip().lower()
-        typed_word = data.get("typed", "").strip().lower()
+        # Frontend sends: SUBMIT_WORD { current_word: ..., typed_word: ... }
+        target_word = data.get("current_word", "").strip().lower()
+        typed_word = data.get("typed_word", "").strip().lower()
         
         is_correct = (target_word == typed_word)
         
@@ -56,23 +60,17 @@ class TypingGame(BaseGame):
             self.lobby.player_scores[player_id] = self.lobby.player_scores.get(player_id, 0) + 1
             self.lobby.last_score_update[player_id] = time.time()
             
-        if player_id in self.lobby.players:
-            await self.lobby.players[player_id].websocket.send_json({
-                "type": "WORD_RESULT",
-                "payload": {"correct": is_correct}
-            })
-            
-            # Send updated score immediately (Speed Typing needs live leaderboard usually)
-            # Or reliance on periodic updates?
-            # app.js listens for SCORE_UPDATE. logic.py didn't send it specifically on every type.
-            # But let's send leaderboard update periodically or here.
-            # To reduce traffic, maybe relying on a lobby background loop? 
-            # For now, let's just trigger a broadcast of leaderboard!
-            
+            # Broadcast Leaderboard Update
             leaderboard = self.lobby.get_leaderboard()
             await self.lobby.broadcast({
                 "type": "SCORE_UPDATE",
                 "payload": leaderboard
+            })
+            
+        if player_id in self.lobby.players:
+            await self.lobby.players[player_id].websocket.send_json({
+                "type": "WORD_RESULT",
+                "payload": {"correct": is_correct}
             })
 
 

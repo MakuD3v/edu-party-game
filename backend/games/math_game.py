@@ -21,6 +21,9 @@ class MathGame(BaseGame):
             "payload": {"duration": 20}
         })
         
+        # Give frontend time to switch screens/show tutorial
+        await asyncio.sleep(2)
+        
         # 1. Generate & Broadcast Question
         self.current_question = self._generate_question()
         
@@ -62,6 +65,13 @@ class MathGame(BaseGame):
             # (Direct access for now, can be abstracted later)
             self.lobby.player_scores[player_id] = self.lobby.player_scores.get(player_id, 0) + 1
             self.lobby.last_score_update[player_id] = time.time()
+            
+            # Broadcast Leaderboard Update
+            leaderboard = self.lobby.get_leaderboard()
+            await self.lobby.broadcast({
+                "type": "SCORE_UPDATE",
+                "payload": leaderboard
+            })
 
         # Send result back to player
         if player_id in self.lobby.players:
