@@ -641,9 +641,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         "payload": roster_data
                     })
 
-                    await lobby.broadcast({"type": "SCORE_UPDATE", "payload": lobby.get_leaderboard()})
-                else:
-                    await websocket.send_json({"type": "WORD_RESULT", "payload": {"correct": False}})
+
 
             # --- MAZE ACTIONS (GAME 3) ---
             elif event_type == "MAZE_MOVE":
