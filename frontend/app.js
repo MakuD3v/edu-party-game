@@ -592,10 +592,13 @@ class AppController {
 
         // Reset local current position
         this.state.currentMazePos = 0;
-        this.state.totalMazeSteps = payload.layout.length || 10;
+        const totalSteps = payload.layout.length || 10;
 
         // Update UI
-        document.getElementById('maze-position-counter').innerText = `Step: 0 / ${this.state.totalMazeSteps}`;
+        const counter = document.getElementById('maze-position-counter');
+        if (counter) {
+            counter.innerText = `Step: 0 / ${totalSteps}`;
+        }
 
         // Render initial frame
         this.renderMaze();
