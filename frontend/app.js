@@ -607,6 +607,173 @@ class AppController {
         window.focus();
     }
 
+    // === GAME 3: TECH QUIZ RACE METHODS ===
+
+    initRaceGame(payload) {
+        // payload = { questions: [...], total_steps: 10, duration: 90 }
+
+        this.state.questions = payload.questions || [];
+        this.state.currentQuestionIndex = 0;
+        this.state.racePositions = {}; // playerId -> step (0-10)
+
+        // Initialize my position
+        this.state.myRaceStep = 0;
+
+        // Render Track (Dots)
+        const trackContainer = document.getElementById('track-steps');
+        if (trackContainer) {
+            trackContainer.innerHTML = '';
+            for (let i = 0; i <= 10; i++) {
+                const dot = document.createElement('div');
+                dot.style.width = '15px';
+                dot.style.height = '15px';
+                dot.style.borderRadius = '50%';
+                dot.style.background = i === 10 ? '#2ECC71' : '#777'; // Finish green
+                dot.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+                trackContainer.appendChild(dot);
+            }
+        }
+
+        // Show First Question
+        this.showRaceQuestion();
+
+        // Initial Render
+        this.renderRaceTrack();
+    }
+
+    showRaceQuestion() {
+        if (!this.state.questions || this.state.questions.length === 0) return;
+
+        const qData = this.state.questions[this.state.currentQuestionIndex];
+        // If we ran out of questions, maybe loop or show "Wait"?
+        // Data generation creates 50 questions, should be enough.
+        if (!qData) {
+            document.getElementById('quiz-question').innerText = "Race in progress...";
+            document.getElementById('quiz-options').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('quiz-question').innerText = qData.q;
+
+        const opts = document.querySelectorAll('.quiz-btn');
+        if (opts.length >= 4 && qData.options) {
+            opts.forEach((btn, i) => {
+                btn.innerText = qData.options[i];
+                btn.disabled = false;
+                btn.style.background = '#3498DB'; // Reset color
+                btn.style.cursor = 'pointer';
+            });
+        }
+
+        document.getElementById('quiz-options').style.display = 'grid';
+    }
+
+    handleRaceOption(selectedIndex) {
+        // Prevent double click
+        const opts = document.querySelectorAll('.quiz-btn');
+        opts.forEach(b => b.disabled = true);
+
+        const qData = this.state.questions[this.state.currentQuestionIndex];
+        const isCorrect = (selectedIndex === qData.a);
+
+        // Instant Feedback
+        const clickedBtn = opts[selectedIndex];
+        clickedBtn.style.background = isCorrect ? '#2ECC71' : '#E74C3C';
+
+        // Send to Backend
+        this.net.send('SUBMIT_RACE_ANSWER', { is_correct: isCorrect });
+
+        // Wait then Next Question
+        setTimeout(() => {
+            this.state.currentQuestionIndex++;
+            this.showRaceQuestion();
+        }, 1000);
+    }
+
+    renderRaceTrack() {
+        const container = document.getElementById('track-players');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        // Render all players (active + me)
+        // Need list of players from Lobby... `this.state.racePositions`
+
+        // Merge known positions
+        const allPos = this.state.racePositions || {};
+
+        // Add me if not in list yet (for local smoothness)
+        if (this.state.user && this.state.user.id) {
+            if (allPos[this.state.user.id] === undefined) {
+                allPos[this.state.user.id] = this.state.myRaceStep;
+            }
+        }
+
+        Object.keys(allPos).forEach(pid => {
+            const step = allPos[pid]; // 0 to 10
+
+            // Calculate % left
+            const percent = (step / 10) * 100;
+
+            const avatar = document.createElement('div');
+            avatar.style.position = 'absolute';
+            avatar.style.left = `${percent}%`;
+            avatar.style.top = '50%';
+            avatar.style.transform = 'translate(-50%, -50%)';
+            avatar.style.transition = 'left 0.5s ease';
+
+            // Style based on user
+            // We need Color/Shape info. Might need to lookup from `this.roster` if available?
+            // For now, generic or try to extract.
+
+            // Try to find player info
+            let color = '#fff';
+            let shape = 'circle';
+            // Simple mockup style
+            avatar.style.width = '30px';
+            avatar.style.height = '30px';
+            avatar.style.background = this.getPlayerColor(pid) || '#F1C40F';
+            avatar.style.borderRadius = '50%';
+            avatar.style.border = '2px solid white';
+            avatar.style.boxShadow = '0 2px 5px rgba(0,0,0,0.5)';
+            avatar.style.zIndex = (pid === this.state.user.id) ? 100 : 1;
+
+            // Add label
+            const label = document.createElement('div');
+            label.innerText = this.getPlayerName(pid);
+            label.style.position = 'absolute';
+            label.style.top = '-20px';
+            label.style.left = '50%';
+            label.style.transform = 'translateX(-50%)';
+            label.style.fontSize = '10px';
+            label.style.color = 'white';
+            label.style.whiteSpace = 'nowrap';
+
+            avatar.appendChild(label);
+            container.appendChild(avatar);
+        });
+
+        // Update Step Counter
+        if (this.state.user) {
+            const myStep = allPos[this.state.user.id] || 0;
+            const cnt = document.getElementById('race-step-counter');
+            if (cnt) cnt.innerText = `Step: ${myStep} / 10`;
+        }
+    }
+
+    // Helper to get player info from storage/state
+    getPlayerName(pid) {
+        if (pid === this.state.user.id) return "YOU";
+        // Logic to lookup name from roster... 
+        // We haven't stored full roster globally well, but let's try.
+        return "Player";
+    }
+
+    getPlayerColor(pid) {
+        if (pid === this.state.user.id) return this.state.user.color;
+        return '#3498DB';
+    }
+
     renderMaze() {
         const canvas = document.getElementById('maze-canvas');
         if (!canvas) return;
@@ -1335,14 +1502,19 @@ class AppController {
 
                 // Wait for DOM to be ready, then initialize
                 setTimeout(() => {
-                    console.log('Initializing maze game...');
-                    this.initMazeGame(msg.payload);
+                    console.log('Initializing Race game...');
+                    this.initRaceGame(msg.payload);
                 }, 100);
                 break;
 
             case 'PLAYER_MOVED':
                 // Another player moved, update their position
-                if (this.state.mazePositions) {
+                if (this.state.currentGame === 3) {
+                    // Game 3 Update
+                    this.state.racePositions = this.state.racePositions || {};
+                    this.state.racePositions[msg.payload.player_id] = msg.payload.new_pos;
+                    this.renderRaceTrack();
+                } else if (this.state.mazePositions) {
                     this.state.mazePositions[msg.payload.player_id] = msg.payload.new_pos;
                     this.renderMaze();
                 }

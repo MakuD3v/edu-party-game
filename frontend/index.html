@@ -181,40 +181,97 @@
         </div>
     </div>
 
-    <!-- GAME 3 SCREEN: MAZE CHALLENGE -->
-    <div id="screen-game3" class="screen" style="position: relative;">
-        <div class="panel" style="max-width:900px; width:95%;">
-            <h1 style="color:var(--school-bus-yellow);">🧩 MAZE CHALLENGE</h1>
+    <!-- GAME 3 SCREEN: TECH QUIZ RACE -->
+    <div id="screen-game3" class="screen" style="position: relative; flex-direction: column;">
 
-            <!-- Position Indicator -->
-            <!-- Position Indicator -->
-            <h2 id="maze-position-counter"
-                style="text-align: center; font-size: 2rem; margin: 10px 0; color: var(--chalk-white);">
-                Step: 0 / 10
+        <!-- Header -->
+        <div style="text-align:center; padding: 20px;">
+            <h1 style="color:var(--school-bus-yellow); font-size:3rem; margin:0;">🚀 TECH SPRINT</h1>
+            <h2 id="race-step-counter" style="color:white; margin:10px 0;">Step: 0 / 10</h2>
+        </div>
+
+        <!-- RACE TRACK -->
+        <div id="race-track-container" style="
+            width: 90%; 
+            height: 120px; 
+            background: rgba(0,0,0,0.5); 
+            border-radius: 15px; 
+            margin: 0 auto 30px auto;
+            display: flex;
+            align-items: center;
+            padding: 0 50px;
+            position: relative;
+        ">
+            <!-- Starting Line -->
+            <div style="position:absolute; left:20px; color:#aaa; font-weight:bold;">START</div>
+
+            <!-- Track Line -->
+            <div style="width:100%; height:4px; background:#555; position:absolute; z-index:0;"></div>
+
+            <!-- Steps (0 to 10) -->
+            <div id="track-steps" style="
+                width: 100%; 
+                display: flex; 
+                justify-content: space-between; 
+                z-index: 1;
+                position: relative;
+            ">
+                <!-- JS will popuate dots here -->
+            </div>
+
+            <!-- Players Layer -->
+            <div id="track-players" style="
+                position: absolute; 
+                width: calc(100% - 100px); 
+                height: 100%; 
+                top: 0; left: 50px;
+                pointer-events: none;
+                z-index: 2;
+            ">
+                <!-- Avatars moving -->
+            </div>
+
+            <!-- Finish Line -->
+            <div style="position:absolute; right:20px; font-size:2rem;">🏁</div>
+        </div>
+
+        <!-- QUIZ CARD -->
+        <div id="quiz-card" style="
+            background: white;
+            color: #333;
+            width: 800px;
+            max-width: 95%;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        ">
+            <h2 id="quiz-question" style="font-size: 1.8rem; margin-bottom: 25px; color:#2C3E50;">
+                Loading Question...
             </h2>
 
-            <!-- Maze Canvas Layer -->
-            <div
-                style="position: relative; width: 100%; height: 60vh; background: #222; border-radius: 10px; overflow: hidden;">
-                <canvas id="maze-canvas" style="width: 100%; height: 100%;"></canvas>
-            </div>
-
-            <!-- Controls Hint -->
-            <div style="text-align: center; margin-top: 10px; color: #888;">
-                Use <kbd>➡</kbd> ARROW RIGHT to Move Forward!
-            </div>
-        </div>
-
-        <!-- Checkpoint Popup Overlay -->
-        <div id="checkpoint-popup" class="modal-overlay hidden"
-            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50;">
-            <div class="panel" style="width: 400px; text-align: center;">
-                <h2 style="color: var(--school-bus-yellow);">🔒 CHECKPOINT!</h2>
-                <p id="checkpoint-q" style="font-size: 1.5rem; margin: 20px 0;">Question?</p>
-                <input type="text" id="checkpoint-input" class="input-field" placeholder="Answer...">
-                <button id="btn-submit-checkpoint" class="btn-primary" style="margin-top: 10px;">UNLOCK</button>
+            <div id="quiz-options" style="
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 15px;
+            ">
+                <button class="quiz-btn" onclick="app.handleRaceOption(0)">Option A</button>
+                <button class="quiz-btn" onclick="app.handleRaceOption(1)">Option B</button>
+                <button class="quiz-btn" onclick="app.handleRaceOption(2)">Option C</button>
+                <button class="quiz-btn" onclick="app.handleRaceOption(3)">Option D</button>
             </div>
         </div>
+
+    </div> <!-- Checkpoint Popup Overlay -->
+    <div id="checkpoint-popup" class="modal-overlay hidden"
+        style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50;">
+        <div class="panel" style="width: 400px; text-align: center;">
+            <h2 style="color: var(--school-bus-yellow);">🔒 CHECKPOINT!</h2>
+            <p id="checkpoint-q" style="font-size: 1.5rem; margin: 20px 0;">Question?</p>
+            <input type="text" id="checkpoint-input" class="input-field" placeholder="Answer...">
+            <button id="btn-submit-checkpoint" class="btn-primary" style="margin-top: 10px;">UNLOCK</button>
+        </div>
+    </div>
     </div>
 
     <!-- SCREEN: SPECTATOR -->

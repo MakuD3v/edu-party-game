@@ -302,83 +302,74 @@ class Lobby:
         """Generate a simple linear maze with checkpoints."""
         # Simple linear track with 20 steps
         # Checkpoints at steps 5, 10, 15
-    def generate_maze(self) -> Dict:
-        """Generate a random linear path with 10 steps using Right/Up/Down."""
-        # Start at (0,0). Generate 10 moves.
-        # Always prioritize moving Forward (Right) but mix in Up/Down.
-        # Path must be deterministically stored for validation.
+    # --- GAME 3: TECH QUIZ RACE ---
+    def generate_tech_questions(self) -> List[Dict]:
+        """Generate a list of 50 randomized tech questions for the race."""
+        pool = [
+            {"q": "What does CPU stand for?", "options": ["Central Processing Unit", "Computer Power Unit", "Central Power Unit", "Core Processing Unit"], "a": 0},
+            {"q": "Which is a Python loop?", "options": ["circle", "for", "spin", "repeat"], "a": 1},
+            {"q": "What is HTML used for?", "options": ["Database", "Styling", "Structure", "Programming"], "a": 2},
+            {"q": "Which symbol is for comments in Python?", "options": ["//", "/*", "#", "--"], "a": 2},
+            {"q": "What is 2 ** 3 in Python?", "options": ["5", "6", "8", "9"], "a": 2},
+            {"q": "What does RAM stand for?", "options": ["Read Access Memory", "Random Access Memory", "Run All Memory", "Real Authorization Mode"], "a": 1},
+            {"q": "Which is NOT a programming language?", "options": ["Java", "Python", "HTML", "C++"], "a": 2},
+            {"q": "What does 'def' do in Python?", "options": ["Define function", "Defeat enemy", "Default value", "Defer execution"], "a": 0},
+            {"q": "Which data type is 'Hello'?", "options": ["Integer", "Boolean", "String", "Float"], "a": 2},
+            {"q": "What is the output of: print(10 % 3)?", "options": ["1", "3", "0", "10"], "a": 0},
+            {"q": "Which key closes a full screen window?", "options": ["Shift", "Esc", "Ctrl", "Alt"], "a": 1},
+            {"q": "What does CSS stand for?", "options": ["Computer Style Sheets", "Creative Style System", "Cascading Style Sheets", "Colorful Sheet Style"], "a": 2},
+            {"q": "Which corresponds to 'True' in binary?", "options": ["0", "1", "2", "-1"], "a": 1},
+            {"q": "What is the brains of the computer?", "options": ["Monitor", "Keyboard", "CPU", "Mouse"], "a": 2},
+            {"q": "Which lists are immutable in Python?", "options": ["List", "Dictionary", "Tuple", "Set"], "a": 2},
+            {"q": "How do you start a variable in PHP?", "options": ["$", "@", "#", "%"], "a": 0},
+            {"q": "What does HTTP start with?", "options": ["www", "http", "ftp", "com"], "a": 1}, # Trick question? No, simplified.
+            {"q": "What is the port for Web (HTTP)?", "options": ["21", "22", "80", "443"], "a": 2},
+            {"q": "Which is a float?", "options": ["1", "1.0", "'1'", "One"], "a": 1},
+            {"q": "What ends a line in Python?", "options": [";", "Newline", ".", "}"], "a": 1},
+        ] * 4 # Duplicate to ensure enough questions
         
-        directions = ['right', 'right', 'right', 'up', 'down', 'right', 'up', 'right', 'down', 'right']
-        random.shuffle(directions)
+        random.shuffle(pool)
+        return pool[:50]
         
-        # Ensure we always start with 'right' for better UX?
-        # Let's clean it.
-        path = []
-        for _ in range(10):
-            path.append(random.choice(['right', 'right', 'up', 'down']))
-            
-        self.current_maze_path = path
-        
-        return {
-            "length": 10,
-            "path": path, # List of 'right', 'up', 'down'
-            "checkpoints": {
-                3: {"q": "5 + 5 = ?", "a": "10"},
-                6: {"q": "Type 'win'", "a": "win"},
-                9: {"q": "20 / 2 = ?", "a": "10"}
-            }
-        }
-    
-    def init_maze_state(self):
-        """Initialize player positions for maze."""
-        # position = step index (0 to 10)
+    def init_race_state(self):
+        """Initialize player positions for race (0 to 10)."""
         self.maze_state = {pid: 0 for pid in self.active_players}
         
-    def move_player_maze(self, player_id: str, direction: str) -> Dict:
+    def handle_race_answer(self, player_id: str, is_correct: bool) -> Dict:
         """
-        Move player in maze.
-        Validated against self.current_maze_path.
+        Update player position based on answer.
+        Correct: +1
+        Wrong: -1
+        Bounds: 0 to 10.
         """
         if player_id not in self.maze_state:
             return {"moved": False}
-        
-        # Ensure path exists
-        if not hasattr(self, 'current_maze_path') or not self.current_maze_path:
-            return {"moved": False, "msg": "No path"}
             
         current_pos = self.maze_state[player_id]
         
-        # If finished, stop
+        # Already finished?
         if current_pos >= 10:
             return {"moved": False, "finished": True}
         
-        # Logic: To move FROM current_pos to Next, 
-        # Player must press the direction of `path[current_pos]`.
-        # Example: path=['right', 'up']
-        # Pos 0: Press 'right' -> moves to Pos 1.
-        # Pos 1: Press 'up' -> moves to Pos 2 (Finish).
-        
-        required_direction = self.current_maze_path[current_pos]
-        
-        if direction.lower() == required_direction:
-            new_pos = current_pos + 1
-            self.maze_state[player_id] = new_pos
-            
-            # Checkpoints (simplified: just visual or non-blocking for this 'race' style?)
-            # User said "10 puzzles". Let's stick to simple movement race for the "Path" remake.
-            # Adding blocking checks makes it complex again. 
-            # I will return checkpoint info but Auto-Pass for flow, unless user complains.
-            # Actually user said "linear maze up to 10 puzzles".
-            # Directional matching IS the puzzle.
-            
-            return {
-                "moved": True,
-                "new_pos": new_pos,
-                "finished": (new_pos >= 10),
-                "checkpoint": None
-            }
+        new_pos = current_pos
+        if is_correct:
+            new_pos += 1
         else:
-            return {"moved": False, "msg": "Wrong direction"}
+            new_pos -= 1
+            
+        # Clamp
+        if new_pos < 0: new_pos = 0
+        if new_pos > 10: new_pos = 10
+        
+        self.maze_state[player_id] = new_pos
+        self.last_score_update[player_id] = time.time() # Update for tie-breaking
+        
+        return {
+            "moved": True,
+            "new_pos": new_pos,
+            "finished": (new_pos >= 10),
+            "correct": is_correct
+        }
 
     def get_leaderboard(self) -> List[Dict]:
         """Return sorted leaderboard with player info."""
