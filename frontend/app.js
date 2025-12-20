@@ -1196,13 +1196,14 @@ class AppController {
                 title: "⌨️ SPEED TYPING",
                 content: `Type the words shown on screen as fast as possible!<br><br>
                          Press <strong>ENTER</strong> after each word.<br><br>
-                         You have <strong>60 seconds</strong>. Highest score wins! ⚡`
+                         You have <strong>20 seconds</strong>. Highest score wins! ⚡`
             },
             3: {
-                title: "🧩 MAZE CHALLENGE",
-                content: `Navigate the maze and solve code puzzles at checkpoints!<br><br>
-                         Use <strong>Arrow Keys</strong> to move.<br><br>
-                         <strong>FIRST</strong> player to reach the end wins the TOURNAMENT! 🎉`
+                title: "🚀 TECH SPRINT",
+                content: `Race to the finish line by answering tech questions!<br><br>
+                         <strong>Correct Answer</strong> = Move forward (+1)<br>
+                         <strong>Wrong Answer</strong> = Move backward (-1)<br><br>
+                         First to reach the goal wins! 🏆`
             }
         };
 
