@@ -151,19 +151,20 @@ async def run_game_1(lobby):
                 print(f"[GAME1] Failed to send question to {player.username}: {e}")
                 pass
     
-    # Wait for 20 seconds
-    await asyncio.sleep(20)
-    
-    # End Game Logic - Use shared handler!
+# === GAME TIMER FUNCTIONS (REFACTORED) ===
+
+async def run_game(lobby, game_number):
+    """Generic runner that starts the appropriate Game Strategy."""
+    game_instance = lobby.start_game(game_number) # Instantiates MathGame, TypingGame, etc.
+    if game_instance:
+        await game_instance.run()
+        
+    # After game finishes, handle round ending
     await handle_round_ending(lobby)
 
 async def handle_round_ending(lobby):
     """Helper function to handle common round ending logic."""
     leaderboard = lobby.get_leaderboard()
-    
-    # Check if Tournament should End (Round 3)
-    current_round = len(lobby.game_history)
-    print(f"[ROUND_END_HANDLER] Round {current_round} finished")
     
     # Check if Tournament should End (Round 3)
     current_round = len(lobby.game_history)
@@ -233,7 +234,6 @@ async def handle_round_ending(lobby):
     # Normal Round End -> Next Game
     
     # Get next game info for display
-    next_game_number = lobby.select_next_game()
     next_game_info = lobby.get_game_info(next_game_number) if lobby.active_players else None
     
     # Broadcast round end
@@ -264,123 +264,13 @@ async def handle_round_ending(lobby):
         # Wait for preview
         await asyncio.sleep(3)
         
-        # Start the appropriate game
-        if next_game_number == 1:
-            await lobby.broadcast({
-                "type": "GAME_1_START",
-                "payload": {"duration": 20, "game_info": next_game_info}
-            })
-            asyncio.create_task(run_game_1(lobby))
-        elif next_game_number == 2:
-            await lobby.broadcast({
-                "type": "GAME_2_START",
-                "payload": {"duration": 30, "game_info": next_game_info}
-            })
-            asyncio.create_task(run_game_2(lobby))
-        elif next_game_number == 3:
-            await lobby.broadcast({
-                "type": "GAME_3_START",
-                "payload": {"duration": 90, "game_info": next_game_info}
-            })
-            asyncio.create_task(run_game_3(lobby))
-
-async def run_game_3(lobby):
-    """Run Game 3 (Tech Quiz Race) for 90 seconds (or until finish)."""
-    import time
-    
-    print(f"[GAME3] run_game_3 started")
-    
-    # Generate Questions
-    questions = lobby.generate_tech_questions()
-    lobby.init_race_state()
-    
-    # Broadcast Start + Questions
-    for player_id in lobby.active_players:
-        if player_id in lobby.players:
-            player = lobby.players[player_id]
-            await player.websocket.send_json({
-                "type": "GAME_3_START",
-                "payload": {
-                    "duration": 90, 
-                    "questions": questions,
-                    "total_steps": 10
-                }
-            })
-            
-    # Wait for completion or timeout
-    start_time = time.time()
-    while time.time() - start_time < 90:
-        await asyncio.sleep(0.5) # Check faster
-        
-        # Check if ANYONE finished (First to finish wins/ends it)
-        any_finished = False
-        winner_id = None
-        for pid in lobby.active_players:
-            if lobby.maze_state.get(pid, 0) >= 10: 
-                any_finished = True
-                winner_id = pid
-                break
-        
-        if any_finished:
-            print(f"[GAME3] Player {winner_id} finished! Ending game.")
-            break
-            
-    # End Game Logic (Result Round)
-    await handle_round_ending(lobby)
-
-async def run_game_2(lobby):
-    """Run Game 2 (Speed Typing) for 30 seconds."""
-    
-    print(f"[GAME2] run_game_2 started")
-    print(f"[GAME2] Active players: {lobby.active_players}")
-    
-    # Generate common words for everyone
-    words = lobby.generate_typing_words(100)
-    print(f"[GAME2] Generated {len(words)} words")
-    
-    # Broadcast words to all active players
-    for player_id in lobby.active_players:
-        if player_id in lobby.players:
-            player = lobby.players[player_id]
-            try:
-                await player.websocket.send_json({
-                    "type": "NEW_WORDS",
-                    "payload": {"words": words}
-                })
-                print(f"[GAME2] Sent {len(words)} words to {player.username}")
-            except Exception as e:
-                print(f"[GAME2] Failed to send words to {player.username}: {e}")
-                pass
-                
-    # Wait for 20 seconds
-    await asyncio.sleep(20)
-    
-    # End Game Logic
-    await handle_round_ending(lobby)
-
-async def run_game_3(lobby):
-    """Run Game 3 (Tech Sprint). Race to finish!"""
-    print(f"[GAME3] Starting Tech Sprint")
-    lobby.init_race_state()
-    questions = lobby.generate_tech_questions()
-    
-    # Send Game Start with Questions
-    await lobby.broadcast({
-        "type": "GAME_3_START",
-        "payload": {
-            "duration": 90,
-            "questions": questions,
-            "total_steps": 10
-        }
-    })
-    
-    # Wait for 90 seconds (or until implementation of early finish)
-    # Simple timer for stability
-    await asyncio.sleep(90)
-    
-    # End Game Logic
-    await handle_round_ending(lobby)
-
+        # Start the appropriate game (Delegated)
+        if next_game_number in [1, 2, 3]:
+            # Send Legacy Start Event for Frontend Compatibility 
+            # (Ideally this moves into Game.run() eventually, but keeping here ensures strict timing control)
+            # Actually, Game classes send their own Start events now!
+            # So we create the task.
+            asyncio.create_task(run_game(lobby, next_game_number))
 
 @app.get("/api/lobbies", response_model=List[LobbySummary])
 async def list_lobbies():

@@ -7,7 +7,7 @@ import uuid
 import asyncio
 import random
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from fastapi import WebSocket
 
 from .models import PlayerState, ShapeEnum, LobbySummary
@@ -62,6 +62,7 @@ class Lobby:
         self.active_players: List[str] = [] # Player IDs still competing
         self.spectators: List[str] = [] # Eliminated player IDs
         self.current_game: int = 0      # 0=None, 1=Math, 2=Typing, 3=Maze
+        self.current_game_instance = None # Instance of BaseGame
         self.game_round: int = 0
         
         # Game State
@@ -228,7 +229,7 @@ class Lobby:
             is_full=self.is_full
         )
     
-    # === TOURNAMENT GAME METHODS ===
+    # === TOURNAMENT MANAGEMENT ===
     
     def start_tournament(self) -> None:
         """Initialize tournament with all ready players as active."""
@@ -238,117 +239,35 @@ class Lobby:
         self.player_scores = {pid: 0 for pid in self.active_players}
         self.game_history = [1] # Tracks games played (Starts with Game 1)
         self.game_start_time = time.time()
-    
-    def generate_math_question(self) -> Dict:
-        """Generate a primary-grade math question (1-20 range)."""
-        num1 = random.randint(1, 20)
-        num2 = random.randint(1, 20)
-        operation = random.choice(['+', '-'])
-        
-        if operation == '+':
-            answer = num1 + num2
-            question = f"{num1} + {num2}"
-        else:
-            # Ensure no negative results
-            if num1 < num2:
-                num1, num2 = num2, num1
-            answer = num1 - num2
-            question = f"{num1} - {num2}"
-        
-        question_id = str(uuid.uuid4())[:8]
-        self.current_question = {
-            'id': question_id,
-            'text': question,
-            'answer': answer
-        }
-        return self.current_question
-    
-    def check_answer(self, player_id: str, answer: int) -> bool:
-        """Check math answer for Game 1."""
-        if not self.current_question:
-            return False
-        
-        correct = (self.current_question["answer"] == answer)
-        if correct:
-            self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
-            self.last_score_update[player_id] = time.time()
-        return correct
-        
-    # --- GAME 2: SPEED TYPING ---
-    def generate_typing_words(self, count=50) -> List[str]:
-        """Generate a list of random words for typing game."""
-        words = [
-            "apple", "banana", "cherry", "date", "elderberry", "fig", "grape",
-            "house", "island", "jungle", "kite", "lemon", "mango", "nest",
-            "ocean", "piano", "queen", "river", "sun", "tiger", "umbrella",
-            "violet", "water", "xylophone", "yellow", "zebra", "cloud",
-            "dream", "energy", "flower", "garden", "happy", "image", "juice",
-            "king", "lion", "mouse", "night", "orange", "pencil", "quiet",
-            "radio", "snake", "tree", "unicorn", "vision", "whale", "xray"
-        ]
-        import random
-        return [random.choice(words) for _ in range(count)]
 
-    def check_typed_word(self, player_id: str, current_word: str, typed_word: str) -> bool:
-        """Check typed word for Game 2."""
-        correct = (current_word.lower().strip() == typed_word.lower().strip())
-        if correct:
-            # +1 score for each correct word
-            self.player_scores[player_id] = self.player_scores.get(player_id, 0) + 1
-            self.last_score_update[player_id] = time.time()
-        return correct
-
-    # --- GAME 3: MAZE CHALLENGE ---
-    def generate_maze(self) -> Dict:
-        """Generate a simple linear maze with checkpoints."""
-        # Simple linear track with 20 steps
-        # Checkpoints at steps 5, 10, 15
-    # --- GAME 3: TECH QUIZ RACE ---
-    def generate_tech_questions(self) -> List[Dict]:
-        """Generate a list of 50 randomized tech questions for the race."""
-        pool = [
-            {"q": "What does CPU stand for?", "options": ["Central Processing Unit", "Computer Power Unit", "Central Power Unit", "Core Processing Unit"], "a": 0},
-            {"q": "Which is a Python loop?", "options": ["circle", "for", "spin", "repeat"], "a": 1},
-            {"q": "What is HTML used for?", "options": ["Database", "Styling", "Structure", "Programming"], "a": 2},
-            {"q": "Which symbol is for comments in Python?", "options": ["//", "/*", "#", "--"], "a": 2},
-            {"q": "What is 2 ** 3 in Python?", "options": ["5", "6", "8", "9"], "a": 2},
-            {"q": "What does RAM stand for?", "options": ["Read Access Memory", "Random Access Memory", "Run All Memory", "Real Authorization Mode"], "a": 1},
-            {"q": "Which is NOT a programming language?", "options": ["Java", "Python", "HTML", "C++"], "a": 2},
-            {"q": "What does 'def' do in Python?", "options": ["Define function", "Defeat enemy", "Default value", "Defer execution"], "a": 0},
-            {"q": "Which data type is 'Hello'?", "options": ["Integer", "Boolean", "String", "Float"], "a": 2},
-            {"q": "What is the output of: print(10 % 3)?", "options": ["1", "3", "0", "10"], "a": 0},
-            {"q": "Which key closes a full screen window?", "options": ["Shift", "Esc", "Ctrl", "Alt"], "a": 1},
-            {"q": "What does CSS stand for?", "options": ["Computer Style Sheets", "Creative Style System", "Cascading Style Sheets", "Colorful Sheet Style"], "a": 2},
-            {"q": "Which corresponds to 'True' in binary?", "options": ["0", "1", "2", "-1"], "a": 1},
-            {"q": "What is the brains of the computer?", "options": ["Monitor", "Keyboard", "CPU", "Mouse"], "a": 2},
-            {"q": "Which lists are immutable in Python?", "options": ["List", "Dictionary", "Tuple", "Set"], "a": 2},
-            {"q": "How do you start a variable in PHP?", "options": ["$", "@", "#", "%"], "a": 0},
-            {"q": "What does HTTP start with?", "options": ["www", "http", "ftp", "com"], "a": 1}, # Trick question? No, simplified.
-            {"q": "What is the port for Web (HTTP)?", "options": ["21", "22", "80", "443"], "a": 2},
-            {"q": "Which is a float?", "options": ["1", "1.0", "'1'", "One"], "a": 1},
-            {"q": "What ends a line in Python?", "options": [";", "Newline", ".", "}"], "a": 1},
-        ] * 4 # Duplicate to ensure enough questions
+    # === GAME STRATEGY MANAGEMENT ===
+    
+    def start_game(self, game_number: int) -> Any:
+        # Import here to avoid circular dependencies if logic.py is imported by main
+        from .games.math_game import MathGame
+        from .games.typing_game import TypingGame
+        from .games.race_game import RaceGame
         
-        random.shuffle(pool)
-        return pool[:50]
+        self.current_game = game_number
+        self.current_game_instance = None
         
-    def init_race_state(self):
-        """Initialize player positions for race (0 to 10)."""
-        self.maze_state = {pid: 0 for pid in self.active_players}
-        
-    def handle_race_answer(self, player_id: str, is_correct: bool) -> Dict:
-        """
-        Update player position based on answer.
-        Correct: +1
-        Wrong: -1
-        Bounds: 0 to 10.
-        """
-        if player_id not in self.maze_state:
-            return {"moved": False}
+        if game_number == 1:
+            self.current_game_instance = MathGame(self)
+        elif game_number == 2:
+            self.current_game_instance = TypingGame(self)
+        elif game_number == 3:
+            self.current_game_instance = RaceGame(self)
             
-        current_pos = self.maze_state[player_id]
-        
-        # Already finished?
+        return self.current_game_instance
+
+    async def handle_game_input(self, player_id: str, data: Dict[str, Any]):
+        """Delegates input handling to the active game instance."""
+        if self.current_game_instance and self.current_game_instance.is_active:
+            await self.current_game_instance.handle_input(player_id, data)
+    
+    # === LEGACY METHODS REMOVED ===
+    # Using OOP Game Classes Strategy instead.
+
         if current_pos >= 10:
             return {"moved": False, "finished": True}
         

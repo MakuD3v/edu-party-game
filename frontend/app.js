@@ -1589,10 +1589,49 @@ class AppController {
                 }
                 break;
 
+            case 'PLAYER_FINISHED':
+                // Show personalized finish popup
+                const rank = msg.payload.rank;
+                const bonus = msg.payload.bonus;
+
+                // You could make this a nice modal overlay, but for now a clear centered message
+                const hud = document.getElementById('game-hud');
+                if (hud) {
+                    const popup = document.createElement('div');
+                    popup.style.position = 'fixed';
+                    popup.style.top = '50%';
+                    popup.style.left = '50%';
+                    popup.style.transform = 'translate(-50%, -50%)';
+                    popup.style.background = 'rgba(0,0,0,0.9)';
+                    popup.style.border = '4px solid #F1C40F';
+                    popup.style.padding = '40px';
+                    popup.style.borderRadius = '20px';
+                    popup.style.color = 'white';
+                    popup.style.textAlign = 'center';
+                    popup.style.zIndex = '2000';
+                    popup.style.animation = 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+                    popup.innerHTML = `
+                        <div style="font-size: 4rem;">🏁</div>
+                        <h1 style="color: #F1C40F; font-size: 3rem; margin: 10px 0;">FINISHED!</h1>
+                        <h2 style="font-size: 2rem;">Rank: <span style="color: #2ECC71;">${rank}${this.getOrdinal(rank)}</span></h2>
+                        <div style="font-size: 1.2rem; color: #aaa; margin-top: 10px;">Waiting for others...</div>
+                    `;
+
+                    document.body.appendChild(popup);
+                }
+                break;
+
             case 'ERROR':
                 alert(msg.msg);
                 break;
         }
+    }
+
+    getOrdinal(n) {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return s[(v - 20) % 10] || s[v] || s[0];
     }
 }
 
